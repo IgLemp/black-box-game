@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "stdbool.h": "c"
+        "stdbool.h": "c",
+        "stdio.h": "c",
+        "libc-header-start.h": "c",
+        "types.h": "c"
     }
 }
