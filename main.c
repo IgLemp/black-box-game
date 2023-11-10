@@ -18,8 +18,8 @@ Choose board size:\n\
     (L) LARGE  10x10\n\
 "
 
-// #define CLS printf("\e[1;1H\e[2J"); // clear screen
-#define CLS
+#define CLS printf("\e[1;1H\e[2J"); // clear screen
+// #define CLS
 
 typedef enum {
     MENU,
@@ -43,6 +43,13 @@ typedef enum {
     RIGHT,
 } Direction;
 
+typedef enum {
+    SHOW_CURSOR  = 1,
+    SHOW_ATOMS   = 2,
+    SHOW_MARKERS = 4,
+    SHOW_CORRECT_HITS = 8,
+} BoardPrinterOptions;
+
 typedef struct {
     MarkerType type;
     size_t number;
@@ -54,8 +61,7 @@ typedef struct {
 
 
 void check_hit(Cursor cursor, size_t last_index, Marker board[12][12], bool atoms[12][12]);
-void display_board(Marker board[12][12], size_t last_index, Cursor cursor);
-void show_atoms(Marker board[12][12], size_t last_index, bool atoms[12][12]);
+void display_board(Marker board[12][12], bool atoms[12][12], size_t last_index, Cursor cursor, BoardPrinterOptions opt);
 void run_menu();
 void run_game();
 void run_check();
@@ -125,7 +131,7 @@ void check_hit(Cursor cursor, size_t last_index, Marker board[12][12], bool atom
 }
 
 
-void display_board(Marker board[12][12], size_t last_index, Cursor cursor) {
+void display_board(Marker board[12][12], bool atoms[12][12], size_t last_index, Cursor cursor, BoardPrinterOptions opt) {
     printf("╔");
     for (size_t i = 0; i <= last_index; i++) { printf("═"); }
     printf("╗\n");
@@ -133,18 +139,32 @@ void display_board(Marker board[12][12], size_t last_index, Cursor cursor) {
     for (size_t i = 0; i <= last_index; i++) { 
         printf("║");
         for (size_t j = 0; j <= last_index; j++) {
-            if ( (i == cursor.y) && (j == cursor.x) ) { printf("@"); 
-            } else if ((i == 0) || (i == last_index) || (j == 0) || (j == last_index)) {
-                printf("▓");                
-            } else {
+            if (opt & SHOW_CURSOR) { if ( (i == cursor.y) && (j == cursor.x) ) { printf("@"); } }
+            else if ((i == 0) || (i == last_index) || (j == 0) || (j == last_index)) { printf("▓"); } 
+            else {
                 switch (board[i][j].type) {
-                case EMPTY:      printf("░"); break;
-                case MARK:       printf("o"); break;
+                case EMPTY:
+                    if (opt & SHOW_ATOMS) {
+                        if (atoms[i][j]) { printf("O"); }
+                    } else if (opt & SHOW_CORRECT_HITS) {
+                        if (atoms[i][j]) { printf("O"); }
+                    } else {
+                        printf("░");
+                    }
+                    break;
+                case MARK: 
+                    if      (opt & SHOW_MARKERS) { printf("o"); }
+                    else if (opt & SHOW_CORRECT_HITS) {
+                        if (atoms[i][j]) { printf("O"); }
+                        else { printf("X"); }
+                    }
+                    break;
                 case HIT:        printf("%i", board[i][j].number); break;
                 case REFLECTION: printf("%i", board[i][j].number); break;
                 default: break;
                 }
             }
+            
         }
         printf("║\n");
     }
@@ -153,37 +173,6 @@ void display_board(Marker board[12][12], size_t last_index, Cursor cursor) {
     for (size_t i = 0; i <= last_index; i++) { printf("═"); }
     printf("╝\n");
 }
-
-
-void show_atoms(Marker board[12][12], size_t last_index, bool atoms[12][12]) {
-    printf("╔");
-    for (size_t i = 0; i <= last_index; i++) { printf("═"); }
-    printf("╗\n");
-
-    for (size_t i = 0; i <= last_index; i++) { 
-        printf("║");
-        for (size_t j = 0; j <= last_index; j++) {
-            if ((i == 0) || (i == last_index) || (j == 0) || (j == last_index)) {
-                printf("▓");
-            } else if (atoms[i][j]) {
-                printf("O");
-            } else {
-                switch (board[i][j].type) {
-                case EMPTY:      printf("░"); break;
-                case HIT:        printf("%i", board[i][j].number); break;
-                case REFLECTION: printf("%i", board[i][j].number); break;
-                default: break;
-                }
-            }
-        }
-        printf("║\n");
-    }
-
-    printf("╚");
-    for (size_t i = 0; i <= last_index; i++) { printf("═"); }
-    printf("╝\n");
-}
-
 
 
 void run_menu(GameState *game_state, size_t *last_board_index) {
@@ -234,11 +223,9 @@ void run_game(GameState *game_state, size_t last_board_index, Marker board[12][1
         size_t x = ((size_t)rand() % (last_board_index - 1)) + 1;
         size_t y = ((size_t)rand() % (last_board_index - 1)) + 1;
         if (// two atoms next to each other make ambiguous positions possible
-            !((atoms[x - 1][y - 1]) || (atoms[x - 1][y]) || (atoms[x - 1][y + 1]) ||
-              (atoms[x    ][y - 1]) || (atoms[x    ][y]) || (atoms[x    ][y + 1]) ||
-              (atoms[x + 1][y - 1]) || (atoms[x - 1][y]) || (atoms[x + 1][y + 1]))
+            !(atoms[y - 1][x - 1] || atoms[y - 1][x] || atoms[y - 1][x + 1])
         ) {
-            atoms[x][y] = true;
+            atoms[y][x] = true;
             i++;
         }
         // else {puts("false");}
@@ -246,7 +233,7 @@ void run_game(GameState *game_state, size_t last_board_index, Marker board[12][1
 
     // main game loop
     while (*game_state == RUNNING) {
-        display_board(board, last_board_index, cursor);
+        display_board(board, atoms, last_board_index, cursor, SHOW_CURSOR | SHOW_MARKERS);
         printf("x:%i y:%i\n", cursor.x, cursor.y);
         printf("> "); // Prompt
         scanf("%c%*c", &input);
@@ -285,7 +272,6 @@ void run_game(GameState *game_state, size_t last_board_index, Marker board[12][1
         case 'p': *game_state = CHECK; break;
         case 'h': case 'H':
             CLS
-            show_atoms(board, last_board_index, atoms);
             sleep(3);
             break;
         case 'Q': case 'q': *game_state = MENU; break;
@@ -311,16 +297,17 @@ void run_end(GameState *game_state, size_t last_board_index, Marker board[12][12
             if ((i == 0) || (i == last_board_index) || (j == 0) || (j == last_board_index)) {
                 printf("▓");                
             } else {
-                switch (board[i][j].type) {
-                case EMPTY: printf("░"); break;
-                case MARK: 
-                    if (atoms[i][j]) { printf("O"); score++; }
-                    else             { printf("X"); }
-                    break;
-                case HIT:        printf("%01X", board[i][j].number); break;
-                case REFLECTION: printf("%01X", board[i][j].number); break;
-                default: break;
-                }
+                if (atoms[j][i]) {printf("O");} else {printf("░");}
+                // switch (board[i][j].type) {
+                // case EMPTY: printf("░"); break;
+                // case MARK: 
+                //     if (atoms[i][j]) { printf("O"); score++; }
+                //     else             { printf("X"); }
+                //     break;
+                // case HIT:        printf("%01X", board[i][j].number); break;
+                // case REFLECTION: printf("%01X", board[i][j].number); break;
+                // default: break;
+                // }
             }
         }
         printf("║\n");
@@ -339,28 +326,7 @@ void run_end(GameState *game_state, size_t last_board_index, Marker board[12][12
 
 
 void run_check(GameState *game_state, size_t last_board_index, Marker board[12][12], bool atoms[12][12]) {
-    printf("╔");
-    for (size_t i = 0; i <= last_board_index; i++) { printf("═"); }
-    printf("╗\n");
-
-    for (size_t i = 0; i <= last_board_index; i++) { 
-        printf("║");
-        for (size_t j = 0; j <= last_board_index; j++) {
-            if ((i == 0) || (i == last_board_index) || (j == 0) || (j == last_board_index)) {
-                printf("▓");                
-            } else if (atoms[i][j]) {
-                printf("O");
-            } else {
-                switch (board[i][j].type) {
-                case EMPTY: printf("░"); break;
-                case HIT:        printf("%01X", board[i][j].number); break;
-                case REFLECTION: printf("%01X", board[i][j].number); break;
-                default: break;
-                }
-            }
-        }
-        printf("║\n");
-    }
+    
 
     printf("╚");
     for (size_t i = 0; i <= last_board_index; i++) { printf("═"); }
