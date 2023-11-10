@@ -18,7 +18,8 @@ Choose board size:\n\
     (L) LARGE  10x10\n\
 "
 
-#define CLS printf("\e[1;1H\e[2J"); // clear screen
+// #define CLS printf("\e[1;1H\e[2J"); // clear screen
+#define CLS
 
 typedef enum {
     MENU,
@@ -35,6 +36,13 @@ typedef enum {
     REFLECTION,
 } MarkerType;
 
+typedef enum {
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
+} Direction;
+
 typedef struct {
     MarkerType type;
     size_t number;
@@ -42,12 +50,12 @@ typedef struct {
 
 typedef struct {
     size_t x, y;
-} Cursor;
+} Cursor, Ray;
 
 
-Marker check_hit(Cursor c, Marker **board);
-void display_board();
-void show_atoms();
+void check_hit(Cursor cursor, size_t last_index, Marker board[12][12], bool atoms[12][12]);
+void display_board(Marker board[12][12], size_t last_index, Cursor cursor);
+void show_atoms(Marker board[12][12], size_t last_index, bool atoms[12][12]);
 void run_menu();
 void run_game();
 void run_check();
@@ -66,8 +74,14 @@ void run_end();
     4#*****#
     5#*****#
     6 #####
+
+    NOTICE: coordinate system starts at top left!
 */
 
+// TODO: Make printing a board less of an ass pain
+//       probably will have to make some fat function
+//       confugured with enum or something
+//       could be a good idea actually
 
 int main() {
     GameState game_state = MENU;
@@ -89,6 +103,27 @@ int main() {
     CLS
     return 0;
 }
+
+
+void check_hit(Cursor cursor, size_t last_index, Marker board[12][12], bool atoms[12][12]) {
+    Direction ray_direction;
+    Ray ray_position = cursor;
+
+    if      (cursor.x == 0)          { ray_direction = RIGHT; }
+    else if (cursor.x == last_index) { ray_direction = LEFT;  }
+    else if (cursor.y == 0)          { ray_direction = DOWN;  }
+    else if (cursor.y == last_index) { ray_direction = UP;    }
+
+    if      (ray_direction = RIGHT) {
+        // if (
+        //     // atoms[ray_position.y][ray_position.x + 1]
+        // )
+    }
+    else if (ray_direction = LEFT ) {}
+    else if (ray_direction = DOWN ) {}
+    else if (ray_direction = UP   ) {}
+}
+
 
 void display_board(Marker board[12][12], size_t last_index, Cursor cursor) {
     printf("╔");
@@ -185,6 +220,8 @@ void run_game(GameState *game_state, size_t last_board_index, Marker board[12][1
     char input;
     char history[5];
     size_t number_of_atoms;
+    memset(board, 0, 12 * 12 * sizeof(Marker));
+    memset(atoms, 0, 12 * 12 * sizeof(bool));
 
     // setup
     switch (last_board_index) {
@@ -193,10 +230,18 @@ void run_game(GameState *game_state, size_t last_board_index, Marker board[12][1
         case 11: number_of_atoms = 8; break;
     }
 
-    for (size_t i = 0; i < number_of_atoms; i++) {
+    for (size_t i = 0; i < number_of_atoms;) {
         size_t x = ((size_t)rand() % (last_board_index - 1)) + 1;
         size_t y = ((size_t)rand() % (last_board_index - 1)) + 1;
-        atoms[y][x] = true;
+        if (// two atoms next to each other make ambiguous positions possible
+            !((atoms[x - 1][y - 1]) || (atoms[x - 1][y]) || (atoms[x - 1][y + 1]) ||
+              (atoms[x    ][y - 1]) || (atoms[x    ][y]) || (atoms[x    ][y + 1]) ||
+              (atoms[x + 1][y - 1]) || (atoms[x - 1][y]) || (atoms[x + 1][y + 1]))
+        ) {
+            atoms[x][y] = true;
+            i++;
+        }
+        // else {puts("false");}
     }
 
     // main game loop
@@ -214,10 +259,17 @@ void run_game(GameState *game_state, size_t last_board_index, Marker board[12][1
         case 'U': case 'u': break;
         case 'R': case 'r': break;
         case ' ':
-            if ( (cursor.x == 0) || (cursor.x == last_board_index) ||
-                 (cursor.y == 0) || (cursor.y == last_board_index) ) {
-                    // check_hit(cursor, board);
-                 }
+            if (// check if on border...
+                (((cursor.x == 0) || (cursor.x == last_board_index)) ||
+                ((cursor.y == 0) || (cursor.y == last_board_index))) &&
+                // ...but not in a corner
+                !(((cursor.x == 0) && (cursor.y == 0)) ||
+                ((cursor.x == last_board_index) && (cursor.y == 0)) ||
+                ((cursor.x == 0) && (cursor.y == last_board_index)) ||
+                ((cursor.x == last_board_index) && (cursor.y == last_board_index)))
+            ) {
+                check_hit(cursor, last_board_index, board, atoms);
+            }
             break;
         case 'o':
             if ( !((cursor.x == 0) || (cursor.x == last_board_index) ||
@@ -232,7 +284,7 @@ void run_game(GameState *game_state, size_t last_board_index, Marker board[12][1
         case 'k': *game_state = END;   break;
         case 'p': *game_state = CHECK; break;
         case 'h': case 'H':
-            printf("\e[1;1H\e[2J"); // clear screen
+            CLS
             show_atoms(board, last_board_index, atoms);
             sleep(3);
             break;
@@ -278,6 +330,7 @@ void run_end(GameState *game_state, size_t last_board_index, Marker board[12][12
     for (size_t i = 0; i <= last_board_index; i++) { printf("═"); }
     printf("╝\n");
 
+    printf("Your score is: \e[1m%i\e[0m\n", score);
     puts("press ENTER to continue...");
     scanf("%*c");
     CLS
