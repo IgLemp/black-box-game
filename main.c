@@ -337,9 +337,9 @@ void run_game(GameState *game_state, size_t last_board_index, Marker board[12][1
     // main game loop
     while (*game_state == RUNNING) {
         display_board(board, atoms, last_board_index, cursor, (BoardPrinterOptions)(SHOW_CURSOR | SHOW_MARKERS));
-        printf("x:%i y:%i\n", cursor.x, cursor.y);
+        // printf("x:%i y:%i\n", cursor.x, cursor.y);
         printf("> "); // Prompt
-        scanf("%c%*c", &input);
+        scanf("%c", &input);
 
         switch (input) {
         case 'W': case 'w': if (cursor.y > 0)                { cursor.y--; } /*last_move = 'w';*/ break;
