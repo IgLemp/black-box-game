@@ -87,10 +87,10 @@ typedef struct {
 
 void check_hit(Cursor cursor, size_t last_index, Marker board[12][12], bool atoms[12][12], size_t *check_number);
 void display_board(Marker board[12][12], bool atoms[12][12], size_t last_index, Cursor cursor, BoardPrinterOptions opt);
-void run_menu(GameState *game_state, size_t *last_board_index);
-void run_game(GameState *game_state, size_t last_board_index, Marker board[12][12], bool atoms[12][12]);
+void run_menu (GameState *game_state, size_t *last_board_index);
+void run_game (GameState *game_state, size_t last_board_index, Marker board[12][12], bool atoms[12][12]);
 void run_check(GameState *game_state, size_t last_board_index, Marker board[12][12], bool atoms[12][12]);
-void run_end(GameState *game_state, size_t last_board_index, Marker board[12][12], bool atoms[12][12]);
+void run_end  (GameState *game_state, size_t last_board_index, Marker board[12][12], bool atoms[12][12]);
 
 /*
     Board starts at x:1 y:1
@@ -109,10 +109,7 @@ void run_end(GameState *game_state, size_t last_board_index, Marker board[12][12
     NOTICE: coordinate system starts at top left!
 */
 
-// TODO: Make printing a board less of an ass pain
-//       probably will have to make some fat function
-//       confugured with enum or something
-//       could be a good idea actually
+// TODO: History depth 5 with dynamic undo redo
 
 int main() {
     GameState game_state = MENU;
@@ -120,14 +117,15 @@ int main() {
     Marker board[12][12];
     memset(board, 0, 12 * 12 * sizeof(Marker));
     bool atoms[12][12] = {false};
+    size_t number_of_atoms;
 
     printf(CLS);
     do {
         switch (game_state) {
-            case MENU:    run_menu (&game_state, &last_board_index); break;
-            case RUNNING: run_game (&game_state, last_board_index, board, atoms); break;
-            case CHECK:   run_check(&game_state, last_board_index, board, atoms); break;
-            case END:     run_end  (&game_state, last_board_index, board, atoms); break;
+        case MENU:    run_menu (&game_state, &last_board_index); break;
+        case RUNNING: run_game (&game_state, last_board_index, board, atoms); break;
+        case CHECK:   run_check(&game_state, last_board_index, board, atoms); break;
+        case END:     run_end  (&game_state, last_board_index, board, atoms); break;
         }
     } while (game_state != QUIT);
 
@@ -150,12 +148,28 @@ void check_hit(Cursor cursor, size_t last_index, Marker board[12][12], bool atom
     */
 
    // set initial rotation
-    if      (cursor.x == 0)          { ray_direction = RIGHT; puts("R"); }
-    else if (cursor.x == last_index) { ray_direction = LEFT;  puts("L"); }
-    else if (cursor.y == 0)          { ray_direction = DOWN;  puts("D"); }
-    else if (cursor.y == last_index) { ray_direction = UP;    puts("U"); }
+    if      (cursor.x == 0)          { ray_direction = RIGHT; }
+    else if (cursor.x == last_index) { ray_direction = LEFT;  }
+    else if (cursor.y == 0)          { ray_direction = DOWN;  }
+    else if (cursor.y == last_index) { ray_direction = UP;    }
 
     while (true) {
+        // check for border collision but avoiding cursor
+        // if it isn't performed first later checks will cause
+        // checking values outside arrays
+        if (((ray_position.x == 0) || (ray_position.x == last_index) || 
+             (ray_position.y == 0) || (ray_position.y == last_index)) &&
+             !((ray_position.x == cursor.x) && (ray_position.y == cursor.y)))
+            {
+                // since we already know it didn't hit anything at the start
+                board[ray_position.y][ray_position.x].number = *check_number;
+                board[cursor.y][cursor.x].number             = *check_number;
+                board[ray_position.y][ray_position.x].type = SNAKE;
+                board[cursor.y][cursor.x].type             = SNAKE;
+                (*check_number)++;
+                return;
+            }
+
         // check for direct hits and reflections
         // rotate accordingly
         if      (ray_direction == RIGHT) {
@@ -211,23 +225,11 @@ void check_hit(Cursor cursor, size_t last_index, Marker board[12][12], bool atom
                 { ray_direction = LEFT;  was_reflected = true; }
         }
 
-        // because of a previous check and set for D collision only RL check is needed
-        // in place reflection
+        // because of a previous check and set for D collision only R and L check is needed
+        // to detect direct reflections
         if (((ray_position.x == cursor.x) && (ray_position.y == cursor.y)) && was_reflected)
             {
                 board[cursor.y][cursor.x].type = REFLECTION;
-                return;
-            } 
-        else if (((ray_position.x == 0) || (ray_position.x == last_index) || 
-                  (ray_position.y == 0) || (ray_position.y == last_index)) &&
-                  !((ray_position.x == cursor.x) && (ray_position.y == cursor.y)))
-            {
-                // since we already know it didn't hit anything at the start
-                board[ray_position.y][ray_position.x].number = *check_number;
-                board[cursor.y][cursor.x].number             = *check_number;
-                board[ray_position.y][ray_position.x].type = SNAKE;
-                board[cursor.y][cursor.x].type             = SNAKE;
-                (*check_number)++;
                 return;
             }
         
@@ -250,7 +252,7 @@ void display_board(Marker board[12][12], bool atoms[12][12], size_t last_index, 
 
     // I know it's bearly readable
     // I couldn't find a better way to do this
-    // NOTICE: if statements first check for indexes then for tile tipe!
+    // NOTICE: if statements first check for indexes then for tile type!
     for (size_t i = 0; i <= last_index; i++) {
         printf(B_VBEAM);
         for (size_t j = 0; j <= last_index; j++) {
@@ -319,23 +321,22 @@ void run_game(GameState *game_state, size_t last_board_index, Marker board[12][1
 
     // setup
     switch (last_board_index) {
-        case 6:  number_of_atoms = 3; break;
-        case 9:  number_of_atoms = 5; break;
-        case 11: number_of_atoms = 8; break;
+    case 6:  number_of_atoms = 3; break;
+    case 9:  number_of_atoms = 5; break;
+    case 11: number_of_atoms = 8; break;
     }
 
-    for (size_t i = 0; i < number_of_atoms; i++) {
+    for (size_t i = 0; i < number_of_atoms;) {
         size_t x = ((size_t)rand() % (last_board_index - 1)) + 1;
         size_t y = ((size_t)rand() % (last_board_index - 1)) + 1;
-        atoms[y][x] = true;
 
-        // There are no checks if we set same atom twice
-        // this is intentional 
+        // check if atom exists
+        if (!atoms[x][y]) { atoms[y][x] = true; i++; }
     }
 
     // main game loop
     while (*game_state == RUNNING) {
-        display_board(board, atoms, last_board_index, cursor, SHOW_CURSOR | /*SHOW_MARKERS | */SHOW_ATOMS);
+        display_board(board, atoms, last_board_index, cursor, (BoardPrinterOptions)(SHOW_CURSOR | SHOW_MARKERS));
         printf("x:%i y:%i\n", cursor.x, cursor.y);
         printf("> "); // Prompt
         scanf("%c%*c", &input);
@@ -390,8 +391,23 @@ void run_game(GameState *game_state, size_t last_board_index, Marker board[12][1
 
 void run_end(GameState *game_state, size_t last_board_index, Marker board[12][12], bool atoms[12][12]) {
     size_t score = 0;
+    size_t number_of_atoms;
+
     display_board(board, atoms, last_board_index, (Cursor){0, 0}, SHOW_CORRECT_HITS);
+    for (size_t i = 0; i < last_board_index; i++) {
+        for (size_t j = 0; j < last_board_index; j++) {
+            if ((board[i][j].type == MARK) && atoms[i][j]) { score++; }
+        }
+    }
+    
+    switch (last_board_index) {
+    case 6:  number_of_atoms = 3; break;
+    case 9:  number_of_atoms = 5; break;
+    case 11: number_of_atoms = 8; break;
+    }
+
     printf("Your score is: \e[1m%i\e[0m\n", score);
+    if (score == number_of_atoms) { printf("\e[1mCongratulations. You've marked all of the atoms!\e[0m\n"); }
     puts("press ENTER to continue...");
     scanf("%*c");
     printf(CLS);
