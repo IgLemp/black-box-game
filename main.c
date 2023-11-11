@@ -57,7 +57,7 @@ typedef enum {
     HIT,
     MARK,
     REFLECTION,
-    MISS,
+    SNAKE,
 } MarkerType;
 
 typedef enum {
@@ -84,7 +84,7 @@ typedef struct {
 } Cursor, Ray;
 
 
-void check_hit(Cursor cursor, size_t last_index, Marker board[12][12], bool atoms[12][12]);
+void check_hit(Cursor cursor, size_t last_index, Marker board[12][12], bool atoms[12][12], size_t *check_number);
 void display_board(Marker board[12][12], bool atoms[12][12], size_t last_index, Cursor cursor, BoardPrinterOptions opt);
 void run_menu();
 void run_game();
@@ -135,23 +135,107 @@ int main() {
 }
 
 
-void check_hit(Cursor cursor, size_t last_index, Marker board[12][12], bool atoms[12][12]) {
+void check_hit(Cursor cursor, size_t last_index, Marker board[12][12], bool atoms[12][12], size_t *check_number) {
     Direction ray_direction;
     Ray ray_position = cursor;
+    bool was_reflected = false;
 
+    /*
+        We have 4 possibilities
+            direct hit
+            left hit
+            right hit
+            left and right hit
+    */
+
+   // set initial rotation
     if      (cursor.x == 0)          { ray_direction = RIGHT; }
     else if (cursor.x == last_index) { ray_direction = LEFT;  }
     else if (cursor.y == 0)          { ray_direction = DOWN;  }
     else if (cursor.y == last_index) { ray_direction = UP;    }
 
-    if      (ray_direction = RIGHT) {
-        // if (
-        //     // atoms[ray_position.y][ray_position.x + 1]
-        // )
+    while (true) {
+        // rotate
+        if      (ray_direction = RIGHT) {
+            if (atoms[ray_position.y][ray_position.x + 1]) // D hit
+                {
+                    board[cursor.y][cursor.x].type = HIT;
+                    return;
+                }
+            else if (atoms[ray_position.y - 1][ray_position.x + 1] && atoms[ray_position.y + 1][ray_position.x + 1]) // LR hit
+                { ray_direction = LEFT; was_reflected = true; }
+            else if (atoms[ray_position.y - 1][ray_position.x + 1]) // L hit
+                { ray_direction = DOWN; was_reflected = true; }
+            else if (atoms[ray_position.y + 1][ray_position.x + 1]) // R hit
+                { ray_direction = UP;   was_reflected = true; }
+        }
+        else if (ray_direction = LEFT) {
+            if (atoms[ray_position.y][ray_position.x - 1]) // D hit
+                {
+                    board[cursor.y][cursor.x].type = HIT;
+                    return;
+                }
+            else if (atoms[ray_position.y - 1][ray_position.x - 1] && atoms[ray_position.y + 1][ray_position.x - 1]) // LR hit
+                { ray_direction = RIGHT; was_reflected = true; }
+            else if (atoms[ray_position.y - 1][ray_position.x - 1]) // R hit
+                { ray_direction = DOWN;  was_reflected = true; }
+            else if (atoms[ray_position.y + 1][ray_position.x - 1]) // L hit
+                { ray_direction = UP;    was_reflected = true; }
+        }
+        else if (ray_direction = DOWN) {
+            if (atoms[ray_position.y + 1][ray_position.x]) // D hit
+                {
+                    board[cursor.y][cursor.x].type = HIT;
+                    return;
+                }
+            else if (atoms[ray_position.y + 1][ray_position.x - 1] && atoms[ray_position.y + 1][ray_position.x + 1]) // LR hit
+                { ray_direction = UP;    was_reflected = true; }
+            else if (atoms[ray_position.y + 1][ray_position.x - 1]) // L hit
+                { ray_direction = RIGHT; was_reflected = true; }
+            else if (atoms[ray_position.y + 1][ray_position.x + 1]) // R hit
+                { ray_direction = LEFT;  was_reflected = true; }
+        }
+        else if (ray_direction = UP) {
+            if (atoms[ray_position.y - 1][ray_position.x]) // D hit
+                {
+                    board[cursor.y][cursor.x].type = HIT;
+                    return;
+                }
+            else if (atoms[ray_position.y - 1][ray_position.x - 1] && atoms[ray_position.y - 1][ray_position.x + 1]) // LR hit
+                { ray_direction = DOWN;  was_reflected = true; }
+            else if (atoms[ray_position.y - 1][ray_position.x - 1]) // L hit
+                { ray_direction = RIGHT; was_reflected = true; }
+            else if (atoms[ray_position.y - 1][ray_position.x + 1]) // R hit
+                { ray_direction = LEFT;  was_reflected = true; }
+        }
+
+        // because of a previous check and set for D collision only RL check is needed
+        // in place reflection
+        if (((ray_position.x == cursor.x) && (ray_position.y == cursor.y)) && was_reflected)
+            {
+                board[cursor.y][cursor.x].type = REFLECTION;
+                return;
+            } 
+        else if ((ray_position.x == 0) || (ray_position.x == last_index) || 
+                (ray_position.y == 0) || (ray_position.y == last_index))
+            {
+                // since we already know it didn't hit anything at the start
+                board[ray_position.y][ray_position.x].number = *check_number;
+                board[cursor.x][cursor.y].number             = *check_number;
+                board[ray_position.y][ray_position.x].type = SNAKE;
+                board[cursor.x][cursor.y].type             = SNAKE;
+                (*check_number)++;
+                return;
+            }
+        
+        switch (ray_direction) {
+        case RIGHT: ray_position.x++;
+        case LEFT:  ray_position.x--;
+        case UP:    ray_position.y--;
+        case DOWN:  ray_position.y++;
+        }
     }
-    else if (ray_direction = LEFT ) {}
-    else if (ray_direction = DOWN ) {}
-    else if (ray_direction = UP   ) {}
+
 }
 
 
@@ -172,9 +256,9 @@ void display_board(Marker board[12][12], bool atoms[12][12], size_t last_index, 
                 else if (opt & SHOW_CORRECT_HITS) { if (board[i][j].type == MARK) { printf("O"); } else { printf("o"); } }
                 else { printf(B_FILL); }
             }
-            else if ((board[i][j].type == HIT) || 
-                     (board[i][j].type == REFLECTION) || 
-                     (board[i][j].type == MISS)) { printf("%01x", board[i][j].number); } 
+            else if (board[i][j].type == HIT)        { printf("H"); }
+            else if (board[i][j].type == REFLECTION) { printf("R"); } 
+            else if (board[i][j].type == SNAKE)      { printf("%01x", board[i][j].number); } 
             else if ((board[i][j].type == MARK)) {
                 if (opt & SHOW_MARKERS) { printf("o"); }
                 else if (opt & SHOW_CORRECT_HITS) { printf("X"); }
@@ -211,7 +295,7 @@ void run_menu(GameState *game_state, size_t *last_board_index) {
         *game_state = RUNNING;
         break;
     case 'Q': case 'q':
-        *game_state = END;
+        *game_state = QUIT;
         break;
     default: break;
     }
@@ -225,6 +309,7 @@ void run_game(GameState *game_state, size_t last_board_index, Marker board[12][1
     char input;
     char history[5];
     size_t number_of_atoms;
+    size_t check_number = 0;
     memset(board, 0, 12 * 12 * sizeof(Marker));
     memset(atoms, 0, 12 * 12 * sizeof(bool));
 
@@ -235,15 +320,13 @@ void run_game(GameState *game_state, size_t last_board_index, Marker board[12][1
         case 11: number_of_atoms = 8; break;
     }
 
-    for (size_t i = 0; i < number_of_atoms;) {
+    for (size_t i = 0; i < number_of_atoms; i++) {
         size_t x = ((size_t)rand() % (last_board_index - 1)) + 1;
         size_t y = ((size_t)rand() % (last_board_index - 1)) + 1;
-        if (// two atoms next to each other make ambiguous positions possible
-            !(atoms[y - 1][x - 1] || atoms[y - 1][x] || atoms[y - 1][x + 1])
-        ) {
-            atoms[y][x] = true;
-            i++;
-        }
+        atoms[y][x] = true;
+
+        // There are no checks if we set same atom twice
+        // this is intentional 
     }
 
     // main game loop
@@ -270,7 +353,8 @@ void run_game(GameState *game_state, size_t last_board_index, Marker board[12][1
                 ((cursor.x == 0) && (cursor.y == last_board_index)) ||
                 ((cursor.x == last_board_index) && (cursor.y == last_board_index)))
             ) {
-                check_hit(cursor, last_board_index, board, atoms);
+                if (board[cursor.y][cursor.x].type == EMPTY) 
+                    { check_hit(cursor, last_board_index, board, atoms, &check_number); }
             }
             break;
         case 'o':
