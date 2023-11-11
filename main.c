@@ -22,6 +22,7 @@ Choose board size:\n\
 
 #ifdef UTF8
     #define CLS "\e[1;1H\e[2J" // clear screen
+    // #define CLS ""
     #define B_LEFT_UP "╔"
     #define B_RIGHT_UP "╗"
     #define B_LEFT_DOWN "╚"
@@ -86,10 +87,10 @@ typedef struct {
 
 void check_hit(Cursor cursor, size_t last_index, Marker board[12][12], bool atoms[12][12], size_t *check_number);
 void display_board(Marker board[12][12], bool atoms[12][12], size_t last_index, Cursor cursor, BoardPrinterOptions opt);
-void run_menu();
-void run_game();
-void run_check();
-void run_end();
+void run_menu(GameState *game_state, size_t *last_board_index);
+void run_game(GameState *game_state, size_t last_board_index, Marker board[12][12], bool atoms[12][12]);
+void run_check(GameState *game_state, size_t last_board_index, Marker board[12][12], bool atoms[12][12]);
+void run_end(GameState *game_state, size_t last_board_index, Marker board[12][12], bool atoms[12][12]);
 
 /*
     Board starts at x:1 y:1
@@ -149,14 +150,15 @@ void check_hit(Cursor cursor, size_t last_index, Marker board[12][12], bool atom
     */
 
    // set initial rotation
-    if      (cursor.x == 0)          { ray_direction = RIGHT; }
-    else if (cursor.x == last_index) { ray_direction = LEFT;  }
-    else if (cursor.y == 0)          { ray_direction = DOWN;  }
-    else if (cursor.y == last_index) { ray_direction = UP;    }
+    if      (cursor.x == 0)          { ray_direction = RIGHT; puts("R"); }
+    else if (cursor.x == last_index) { ray_direction = LEFT;  puts("L"); }
+    else if (cursor.y == 0)          { ray_direction = DOWN;  puts("D"); }
+    else if (cursor.y == last_index) { ray_direction = UP;    puts("U"); }
 
     while (true) {
-        // rotate
-        if      (ray_direction = RIGHT) {
+        // check for direct hits and reflections
+        // rotate accordingly
+        if      (ray_direction == RIGHT) {
             if (atoms[ray_position.y][ray_position.x + 1]) // D hit
                 {
                     board[cursor.y][cursor.x].type = HIT;
@@ -169,7 +171,7 @@ void check_hit(Cursor cursor, size_t last_index, Marker board[12][12], bool atom
             else if (atoms[ray_position.y + 1][ray_position.x + 1]) // R hit
                 { ray_direction = UP;   was_reflected = true; }
         }
-        else if (ray_direction = LEFT) {
+        else if (ray_direction == LEFT) {
             if (atoms[ray_position.y][ray_position.x - 1]) // D hit
                 {
                     board[cursor.y][cursor.x].type = HIT;
@@ -182,7 +184,7 @@ void check_hit(Cursor cursor, size_t last_index, Marker board[12][12], bool atom
             else if (atoms[ray_position.y + 1][ray_position.x - 1]) // L hit
                 { ray_direction = UP;    was_reflected = true; }
         }
-        else if (ray_direction = DOWN) {
+        else if (ray_direction == DOWN) {
             if (atoms[ray_position.y + 1][ray_position.x]) // D hit
                 {
                     board[cursor.y][cursor.x].type = HIT;
@@ -195,7 +197,7 @@ void check_hit(Cursor cursor, size_t last_index, Marker board[12][12], bool atom
             else if (atoms[ray_position.y + 1][ray_position.x + 1]) // R hit
                 { ray_direction = LEFT;  was_reflected = true; }
         }
-        else if (ray_direction = UP) {
+        else if (ray_direction == UP) {
             if (atoms[ray_position.y - 1][ray_position.x]) // D hit
                 {
                     board[cursor.y][cursor.x].type = HIT;
@@ -216,23 +218,25 @@ void check_hit(Cursor cursor, size_t last_index, Marker board[12][12], bool atom
                 board[cursor.y][cursor.x].type = REFLECTION;
                 return;
             } 
-        else if ((ray_position.x == 0) || (ray_position.x == last_index) || 
-                (ray_position.y == 0) || (ray_position.y == last_index))
+        else if (((ray_position.x == 0) || (ray_position.x == last_index) || 
+                  (ray_position.y == 0) || (ray_position.y == last_index)) &&
+                  !((ray_position.x == cursor.x) && (ray_position.y == cursor.y)))
             {
                 // since we already know it didn't hit anything at the start
                 board[ray_position.y][ray_position.x].number = *check_number;
-                board[cursor.x][cursor.y].number             = *check_number;
+                board[cursor.y][cursor.x].number             = *check_number;
                 board[ray_position.y][ray_position.x].type = SNAKE;
-                board[cursor.x][cursor.y].type             = SNAKE;
+                board[cursor.y][cursor.x].type             = SNAKE;
                 (*check_number)++;
                 return;
             }
         
+        // move the ray
         switch (ray_direction) {
-        case RIGHT: ray_position.x++;
-        case LEFT:  ray_position.x--;
-        case UP:    ray_position.y--;
-        case DOWN:  ray_position.y++;
+        case RIGHT: ray_position.x++; break;
+        case LEFT:  ray_position.x--; break;
+        case UP:    ray_position.y--; break;
+        case DOWN:  ray_position.y++; break;
         }
     }
 
@@ -331,7 +335,7 @@ void run_game(GameState *game_state, size_t last_board_index, Marker board[12][1
 
     // main game loop
     while (*game_state == RUNNING) {
-        display_board(board, atoms, last_board_index, cursor, SHOW_CURSOR | SHOW_MARKERS);
+        display_board(board, atoms, last_board_index, cursor, SHOW_CURSOR | /*SHOW_MARKERS | */SHOW_ATOMS);
         printf("x:%i y:%i\n", cursor.x, cursor.y);
         printf("> "); // Prompt
         scanf("%c%*c", &input);
