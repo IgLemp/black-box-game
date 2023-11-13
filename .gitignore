@@ -1,3 +1,5 @@
 # build artifacts
 *.out
 *.exe
+trash.c
+main
