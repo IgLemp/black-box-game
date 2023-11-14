@@ -195,6 +195,12 @@ MarkerAtom check_hit(Point cursor, uint8_t last_index, Marker board[12][12], boo
                 return (MarkerAtom){ SNAKE, {(Point){cursor.x, cursor.y}, (Point){ray_position.x, ray_position.y}} } ;
             }
 
+        // check at borders to prevent out of boundry array acceses later
+        if (((ray_position.x == cursor.x) && (ray_position.y == cursor.y)) && was_reflected)
+            {
+                return (MarkerAtom){ REFLECTION, {cursor.x, cursor.y} };
+            }
+
         // check for direct hits and reflections
         // rotate accordingly
         if      (ray_direction == RIGHT) {
@@ -359,7 +365,7 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
 
     // main game loop
     while (*game_state == RUNNING) {
-        display_board(board, atoms, last_board_index, cursor, (BoardPrinterOptions)(SHOW_CURSOR | SHOW_MARKERS));
+        display_board(board, atoms, last_board_index, cursor, (BoardPrinterOptions)(SHOW_CURSOR | SHOW_ATOMS));
         #ifdef DEBUG
             printf("x:%i y:%i\n", cursor.x, cursor.y);
             printf("pos: %i depth: %i\n", history.position, history.depth);
