@@ -33,7 +33,7 @@ Choose board size:\n\
     #define B_BORDER "▓"
     #define B_FILL "░"
 #else
-    #define CLS "\n\n\n\n\n\n\n"
+    #define CLS "\n\n\n\n\n\n\n\n\n\n\n\n"
     #define B_LEFT_UP "/"
     #define B_RIGHT_UP "\\"
     #define B_LEFT_DOWN "\\"
@@ -43,6 +43,9 @@ Choose board size:\n\
     #define B_BORDER "#"
     #define B_FILL "."
 #endif
+
+#define BOLD(s) "\e[1m" (s) "\e[0m"
+#define RED(S) ""
 
 
 typedef enum {
@@ -84,13 +87,6 @@ typedef struct {
     size_t x, y;
 } Point;
 
-// curcular buffer
-typedef struct {
-    char moves[5];
-    size_t position;
-    size_t depth;
-} MoveHistory;
-
 typedef struct {
     MarkerType type;
     union {
@@ -103,6 +99,14 @@ typedef struct {
     char move;
     MarkerAtom data;
 } HistoryEntry;
+
+// circular buffer
+typedef struct {
+    HistoryEntry moves[5];
+    int position;
+    int depth;
+} MoveHistory;
+
 
 MarkerAtom check_hit(Point cursor, size_t last_index, Marker board[12][12], bool atoms[12][12]);
 void display_board(Marker board[12][12], bool atoms[12][12], size_t last_index, Point cursor, BoardPrinterOptions opt);
@@ -181,11 +185,6 @@ MarkerAtom check_hit(Point cursor, size_t last_index, Marker board[12][12], bool
              !((ray_position.x == cursor.x) && (ray_position.y == cursor.y)))
             {
                 // since we already know it didn't hit anything at the start
-                // board[ray_position.y][ray_position.x].number = *check_number;
-                // board[cursor.y][cursor.x].number             = *check_number;
-                // board[ray_position.y][ray_position.x].type = SNAKE;
-                // board[cursor.y][cursor.x].type             = SNAKE;
-                // (*check_number)++;
                 return (MarkerAtom){ SNAKE, {(Point){cursor.x, cursor.y}, (Point){ray_position.x, ray_position.y}} } ;
             }
 
@@ -331,6 +330,7 @@ void run_game(GameState *game_state, size_t last_board_index, Marker board[12][1
     char input;
     size_t number_of_atoms;
     size_t check_number = 0;
+    size_t marker_count = 0;
     memset(board, 0, 12 * 12 * sizeof(Marker));
     memset(atoms, 0, 12 * 12 * sizeof(bool));
     MoveHistory history = { {'\0'}, 0, 0};
@@ -352,61 +352,109 @@ void run_game(GameState *game_state, size_t last_board_index, Marker board[12][1
 
     // main game loop
     while (*game_state == RUNNING) {
-        display_board(board, atoms, last_board_index, cursor, (BoardPrinterOptions)(SHOW_CURSOR | SHOW_ATOMS));
-        // printf("x:%i y:%i\n", cursor.x, cursor.y);
-        printf("pos: %i depth: %i\n", history.position, history.depth);
-        for (int i = 0; i < 5; i++) { printf("%c ", history.moves[i]); } printf("\n");
-        for (int i = 0; i < 5; i++) { if (i == (((history.position - history.depth) % 5) + 5) % 5) { printf("^ "); } else { printf("  "); } } printf("\n");
+        display_board(board, atoms, last_board_index, cursor, (BoardPrinterOptions)(SHOW_CURSOR | SHOW_MARKERS));
+        #ifdef DEBUG
+            printf("x:%i y:%i\n", cursor.x, cursor.y);
+            printf("pos: %i depth: %i\n", history.position, history.depth);
+            for (int i = 0; i < 5; i++) { printf("%c ", history.moves[i].move); } printf("\n");
+            for (int i = 0; i < 5; i++) { if (i == (((history.position - history.depth) % 5) + 5) % 5) { printf("^ "); } else { printf("  "); } } printf("\n");
+            printf("history index: %i\n", (history.position - history.depth) % 5);
+            printf("unclamped: %i\n", history.position - history.depth);
+        #endif
         printf("> "); // Prompt
         scanf("%c", &input);
 
         switch (input) {
         case 'W': case 'w':
             if (cursor.y > 0)                { cursor.y--; }
-            history.moves[(((history.position + history.depth) % 5) + 5) % 5] = 'w';
+            history.moves[(((history.position - history.depth) % 5) + 5) % 5].move = 'w';
             if (history.depth > 0) { history.depth--; }
             else                   { history.position = (history.position + 1 + 5) % 5; }
             break;
         case 'S': case 's':
             if (cursor.y < last_board_index) { cursor.y++; }
-            history.moves[(((history.position + history.depth) % 5) + 5) % 5] = 's';
+            history.moves[(((history.position - history.depth) % 5) + 5) % 5].move = 's';
             if (history.depth > 0) { history.depth--; }
             else                   { history.position = (history.position + 1 + 5) % 5; }
             break;
         case 'A': case 'a':
             if (cursor.x > 0)                { cursor.x--; }
-            history.moves[(((history.position + history.depth) % 5) + 5) % 5] = 'a';
+            history.moves[(((history.position - history.depth) % 5) + 5) % 5].move = 'a';
             if (history.depth > 0) { history.depth--; }
             else                   { history.position = (history.position + 1 + 5) % 5; }
             break;
         case 'D': case 'd':
             if (cursor.x < last_board_index) { cursor.x++; }
-            history.moves[(((history.position + history.depth) % 5) + 5) % 5] = 'd';
+            history.moves[(((history.position - history.depth) % 5) + 5) % 5].move = 'd';
             if (history.depth > 0) { history.depth--; }
             else                   { history.position = (history.position + 1 + 5) % 5; }
             break;
         case 'U': case 'u':
             if (history.depth < 4) {
                 history.depth++;
-                switch (history.moves[(((history.position - history.depth) % 5) + 5) % 5]) {
+                switch (history.moves[(((history.position - history.depth) % 5) + 5) % 5].move) {
                 case 'w': if (cursor.y < last_board_index) { cursor.y++; } break;
                 case 's': if (cursor.y > 0)                { cursor.y--; } break;
                 case 'a': if (cursor.x < last_board_index) { cursor.x++; } break;
                 case 'd': if (cursor.x > 0)                { cursor.x--; } break;
+                case 'o':
+                    if ( !((cursor.x == 0) || (cursor.x == last_board_index) ||
+                           (cursor.y == 0) || (cursor.y == last_board_index)))
+                        {
+                            if (board[cursor.y][cursor.x].type != MARK) {
+                                board[cursor.y][cursor.x] = (Marker){MARK, 0};
+                            } else {
+                                board[cursor.y][cursor.x] = (Marker){EMPTY, 0};
+                            }
+                        }
+                    break;
+                case ' ':
+                    if (history.moves->data.type == SNAKE) {
+                        board[history.moves->data.data.two_point.f.y][history.moves->data.data.two_point.f.x].type = EMPTY;
+                        board[history.moves->data.data.two_point.l.y][history.moves->data.data.two_point.l.x].type = EMPTY;
+                        board[history.moves->data.data.two_point.f.y][history.moves->data.data.two_point.f.x].number = 0;
+                        board[history.moves->data.data.two_point.l.y][history.moves->data.data.two_point.l.x].number = 0;
+                        check_number--;
+                    } else {
+                        board[history.moves->data.data.point.y][history.moves->data.data.point.x].type = EMPTY;
+                    }
+                    break;
+
                 default: break;
                 }
             }
             break;
         case 'R': case 'r':
             if (history.depth > 0) {
-                history.depth--;
-                switch (history.moves[(((history.position - history.depth) % 5) + 5) % 5]) {
+                switch (history.moves[(((history.position - history.depth) % 5) + 5) % 5].move) {
                 case 'w': if (cursor.y > 0)                { cursor.y--; } break;
                 case 's': if (cursor.y < last_board_index) { cursor.y++; } break;
                 case 'a': if (cursor.x > 0)                { cursor.x--; } break;
                 case 'd': if (cursor.x < last_board_index) { cursor.x++; } break;
+                case 'o':
+                    if ( !((cursor.x == 0) || (cursor.x == last_board_index) ||
+                           (cursor.y == 0) || (cursor.y == last_board_index)))
+                        {
+                            if (board[cursor.y][cursor.x].type != MARK) {
+                                board[cursor.y][cursor.x] = (Marker){MARK, 0};
+                            } else {
+                                board[cursor.y][cursor.x] = (Marker){EMPTY, 0};
+                            }
+                        }
+                    break;
+                case ' ':
+                    if (history.moves->data.type == SNAKE) {
+                        board[history.moves->data.data.two_point.f.y][history.moves->data.data.two_point.f.x].type = history.moves->data.type;
+                        board[history.moves->data.data.two_point.l.y][history.moves->data.data.two_point.l.x].type = history.moves->data.type;
+                        board[history.moves->data.data.two_point.f.y][history.moves->data.data.two_point.f.x].number = 0;
+                        board[history.moves->data.data.two_point.l.y][history.moves->data.data.two_point.l.x].number = 0;
+                        check_number--;
+                    } else {
+                        board[history.moves->data.data.point.y][history.moves->data.data.point.x].type = EMPTY;
+                    }
                 default: break;
                 }
+                history.depth--;
             }
             break;
         case ' ':
@@ -421,27 +469,41 @@ void run_game(GameState *game_state, size_t last_board_index, Marker board[12][1
             ) {
                 if (board[cursor.y][cursor.x].type == EMPTY) { 
                         MarkerAtom mark = check_hit(cursor, last_board_index, board, atoms);
+                        history.moves[(((history.position - history.depth) % 5) + 5) % 5].move = ' ';
                         if (mark.type == SNAKE) {
                             board[mark.data.two_point.f.y][mark.data.two_point.f.x].type = mark.type;
                             board[mark.data.two_point.l.y][mark.data.two_point.l.x].type = mark.type;
                             board[mark.data.two_point.f.y][mark.data.two_point.f.x].number = check_number;
                             board[mark.data.two_point.l.y][mark.data.two_point.l.x].number = check_number;
+                            history.moves->data.type = SNAKE;
+                            history.moves->data.data.two_point = mark.data.two_point;
                             check_number++;
                         } else {
+                            history.moves->data.type = mark.type;
+                            history.moves->data.data.point = mark.data.point;
                             board[mark.data.point.y][mark.data.point.x].type = mark.type;
                         }
+                        if (history.depth > 0) { history.depth--; }
+                        else                   { history.position = (history.position + 1 + 5) % 5; }
                     }
             }
             break;
         case 'o':
             if ( !((cursor.x == 0) || (cursor.x == last_board_index) ||
-                   (cursor.y == 0) || (cursor.y == last_board_index))) {
+                (cursor.y == 0) || (cursor.y == last_board_index))) {
                     if (board[cursor.y][cursor.x].type != MARK) {
-                        board[cursor.y][cursor.x] = (Marker){MARK, 0};
+                        if (marker_count < number_of_atoms) {
+                            board[cursor.y][cursor.x] = (Marker){MARK, 0};
+                            marker_count++;
+                        }
                     } else {
                         board[cursor.y][cursor.x] = (Marker){EMPTY, 0};
+                        marker_count--;
                     }
-                 }
+                    history.moves[(((history.position - history.depth) % 5) + 5) % 5].move = 'o';
+                    if (history.depth > 0) { history.depth--; }
+                    else                   { history.position = (history.position + 1 + 5) % 5; }
+            }
             break;
         case 'k': scanf("%*c"); *game_state = END;   break;
         case 'p': scanf("%*c"); *game_state = CHECK; break;
@@ -478,7 +540,7 @@ void run_end(GameState *game_state, size_t last_board_index, Marker board[12][12
     }
 
     printf("Your score is: \e[1m%i\e[0m\n", score);
-    if (score == number_of_atoms) { printf("\e[1mCongratulations! You've marked all of the atoms!\e[0m\n"); }
+    if (score == number_of_atoms) { printf("Congratulations! You've marked all of the atoms!\n"); }
     puts("press ENTER to continue...");
     scanf("%*c");
     printf(CLS);
