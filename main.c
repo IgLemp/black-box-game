@@ -365,7 +365,7 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
 
     // main game loop
     while (*game_state == RUNNING) {
-        display_board(board, atoms, last_board_index, cursor, (BoardPrinterOptions)(SHOW_CURSOR | SHOW_ATOMS));
+        display_board(board, atoms, last_board_index, cursor, (BoardPrinterOptions)(SHOW_CURSOR | SHOW_MARKERS));
         #ifdef DEBUG
             printf("x:%i y:%i\n", cursor.x, cursor.y);
             printf("pos: %i depth: %i\n", history.position, history.depth);
