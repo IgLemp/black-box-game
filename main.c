@@ -368,6 +368,7 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
             printf("history index: %i\n", (history.position - history.depth) % 5);
             printf("unclamped: %i\n", history.position - history.depth);
         #endif
+        printf("markers left: %i\n", number_of_atoms - marker_count);
         printf("> "); // Prompt
         scanf("%c", &input);
 
