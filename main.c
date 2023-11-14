@@ -80,6 +80,11 @@ typedef enum {
     SHOW_CORRECT_HITS = 8,
 } BoardPrinterOptions;
 
+typedef enum {
+    INSERT,
+    RETREIVE,
+} HistoryManagerOptions;
+
 typedef struct {
     MarkerType type;
     uint8_t number;
@@ -349,7 +354,7 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
         uint8_t y = ((uint8_t)rand() % (last_board_index - 1)) + 1;
 
         // check if atom exists
-        if (!atoms[x][y]) { atoms[y][x] = true; i++; }
+        if (!atoms[y][x]) { atoms[y][x] = true; i++; }
     }
 
     // main game loop
@@ -365,6 +370,12 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
         #endif
         printf("> "); // Prompt
         scanf("%c", &input);
+
+        // C++ compiler screams at me if I initialize it more than one time
+        // C compiler doesn't and I don't know why
+        // anyhow I'm initializing it here
+        MarkerAtom marker_atom;
+        int history_cursor;
 
         switch (input) {
         case 'W': case 'w':
@@ -394,7 +405,9 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
         case 'U': case 'u':
             if (history.depth < 4) {
                 history.depth++;
-                switch (history.moves[(((history.position - history.depth) % 5) + 5) % 5].move) {
+                history_cursor = (((history.position - history.depth) % 5) + 5) % 5;
+                
+                switch (history.moves[history_cursor].move) {
                 case 'w': if (cursor.y < last_board_index) { cursor.y++; } break;
                 case 's': if (cursor.y > 0)                { cursor.y--; } break;
                 case 'a': if (cursor.x < last_board_index) { cursor.x++; } break;
@@ -411,14 +424,15 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
                         }
                     break;
                 case ' ':
-                    if (history.moves->data.type == SNAKE) {
-                        board[history.moves->data.data.two_point.f.y][history.moves->data.data.two_point.f.x].type = EMPTY;
-                        board[history.moves->data.data.two_point.l.y][history.moves->data.data.two_point.l.x].type = EMPTY;
-                        board[history.moves->data.data.two_point.f.y][history.moves->data.data.two_point.f.x].number = 0;
-                        board[history.moves->data.data.two_point.l.y][history.moves->data.data.two_point.l.x].number = 0;
+                    marker_atom = history.moves[history_cursor].data;
+                    if (history.moves[history_cursor].data.type == SNAKE) {
+                        board[marker_atom.data.two_point.f.y][marker_atom.data.two_point.f.x].type = EMPTY;
+                        board[marker_atom.data.two_point.l.y][marker_atom.data.two_point.l.x].type = EMPTY;
+                        board[marker_atom.data.two_point.f.y][marker_atom.data.two_point.f.x].number = 0;
+                        board[marker_atom.data.two_point.l.y][marker_atom.data.two_point.l.x].number = 0;
                         check_number--;
                     } else {
-                        board[history.moves->data.data.point.y][history.moves->data.data.point.x].type = EMPTY;
+                        board[marker_atom.data.point.y][marker_atom.data.point.x].type = EMPTY;
                     }
                     break;
 
@@ -445,14 +459,16 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
                         }
                     break;
                 case ' ':
-                    if (history.moves->data.type == SNAKE) {
-                        board[history.moves->data.data.two_point.f.y][history.moves->data.data.two_point.f.x].type = history.moves->data.type;
-                        board[history.moves->data.data.two_point.l.y][history.moves->data.data.two_point.l.x].type = history.moves->data.type;
-                        board[history.moves->data.data.two_point.f.y][history.moves->data.data.two_point.f.x].number = 0;
-                        board[history.moves->data.data.two_point.l.y][history.moves->data.data.two_point.l.x].number = 0;
-                        check_number--;
+                    history_cursor = (((history.position - history.depth) % 5) + 5) % 5;
+                    marker_atom = history.moves[history_cursor].data;
+                    if (history.moves[history_cursor].data.type == SNAKE) {
+                        board[marker_atom.data.two_point.f.y][marker_atom.data.two_point.f.x].type = marker_atom.type;
+                        board[marker_atom.data.two_point.l.y][marker_atom.data.two_point.l.x].type = marker_atom.type;
+                        board[marker_atom.data.two_point.f.y][marker_atom.data.two_point.f.x].number = 0;
+                        board[marker_atom.data.two_point.l.y][marker_atom.data.two_point.l.x].number = 0;
+                        check_number++;
                     } else {
-                        board[history.moves->data.data.point.y][history.moves->data.data.point.x].type = EMPTY;
+                        board[marker_atom.data.point.y][marker_atom.data.point.x].type = history.moves[(((history.position - history.depth) % 5) + 5) % 5].data.type;
                     }
                 default: break;
                 }
@@ -477,12 +493,12 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
                             board[mark.data.two_point.l.y][mark.data.two_point.l.x].type = mark.type;
                             board[mark.data.two_point.f.y][mark.data.two_point.f.x].number = check_number;
                             board[mark.data.two_point.l.y][mark.data.two_point.l.x].number = check_number;
-                            history.moves->data.type = SNAKE;
-                            history.moves->data.data.two_point = mark.data.two_point;
+                            history.moves[(((history.position - history.depth) % 5) + 5) % 5].data.type = SNAKE;
+                            history.moves[(((history.position - history.depth) % 5) + 5) % 5].data.data.two_point = mark.data.two_point;
                             check_number++;
                         } else {
-                            history.moves->data.type = mark.type;
-                            history.moves->data.data.point = mark.data.point;
+                            history.moves[(((history.position - history.depth) % 5) + 5) % 5].data.type = mark.type;
+                            history.moves[(((history.position - history.depth) % 5) + 5) % 5].data.data.point = mark.data.point;
                             board[mark.data.point.y][mark.data.point.x].type = mark.type;
                         }
                         if (history.depth > 0) { history.depth--; }
@@ -492,7 +508,7 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
             break;
         case 'o':
             if ( !((cursor.x == 0) || (cursor.x == last_board_index) ||
-                (cursor.y == 0) || (cursor.y == last_board_index))) {
+                   (cursor.y == 0) || (cursor.y == last_board_index))) {
                     if (board[cursor.y][cursor.x].type != MARK) {
                         if (marker_count < number_of_atoms) {
                             board[cursor.y][cursor.x] = (Marker){MARK, 0};
@@ -541,7 +557,7 @@ void run_end(GameState *game_state, uint8_t last_board_index, Marker board[12][1
     case 11: number_of_atoms = 8; break;
     }
 
-    printf("Your score is: " BOLD("%i") "\n", score);
+    printf("Your score is: " GREEN(BOLD("%i")) "\n", score);
     if (score == number_of_atoms) { printf(BOLD("Congratulations! You've marked all of the atoms!\n")); }
     puts("press ENTER to continue...");
     scanf("%*c");
