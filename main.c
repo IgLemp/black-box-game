@@ -1,3 +1,6 @@
+// Igor Łempicki 200449
+// EiT gr.1 gra Black Box
+
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
