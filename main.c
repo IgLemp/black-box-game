@@ -5,8 +5,12 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <stdint.h>
+#if defined (__WIN32__)
+    #include <windows.h>
+#else
+    #include <unistd.h>
+#endif
 
 #define STARTING_SCREEN \
 "\
@@ -495,20 +499,21 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
                 ((cursor.x == 0) && (cursor.y == last_board_index)) ||
                 ((cursor.x == last_board_index) && (cursor.y == last_board_index)))
             ) {
-                if (board[cursor.y][cursor.x].type == EMPTY) { 
+                if (board[cursor.y][cursor.x].type == EMPTY) {
+                        history_cursor = (((history.position - history.depth) % 5) + 5) % 5;
                         MarkerAtom mark = check_hit(cursor, last_board_index, board, atoms);
-                        history.moves[(((history.position - history.depth) % 5) + 5) % 5].move = ' ';
+                        history.moves[history_cursor].move = ' ';
                         if (mark.type == SNAKE) {
                             board[mark.data.two_point.f.y][mark.data.two_point.f.x].type = mark.type;
                             board[mark.data.two_point.l.y][mark.data.two_point.l.x].type = mark.type;
                             board[mark.data.two_point.f.y][mark.data.two_point.f.x].number = check_number;
                             board[mark.data.two_point.l.y][mark.data.two_point.l.x].number = check_number;
-                            history.moves[(((history.position - history.depth) % 5) + 5) % 5].data.type = SNAKE;
-                            history.moves[(((history.position - history.depth) % 5) + 5) % 5].data.data.two_point = mark.data.two_point;
+                            history.moves[history_cursor].data.type = SNAKE;
+                            history.moves[history_cursor].data.data.two_point = mark.data.two_point;
                             check_number++;
                         } else {
-                            history.moves[(((history.position - history.depth) % 5) + 5) % 5].data.type = mark.type;
-                            history.moves[(((history.position - history.depth) % 5) + 5) % 5].data.data.point = mark.data.point;
+                            history.moves[history_cursor].data.type = mark.type;
+                            history.moves[history_cursor].data.data.point = mark.data.point;
                             board[mark.data.point.y][mark.data.point.x].type = mark.type;
                         }
                         if (history.depth > 0) { history.depth--; }
