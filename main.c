@@ -122,7 +122,7 @@ typedef struct {
 } MoveHistory;
 
 
-MarkerAtom check_hit(Point cursor, uint8_t last_index, Marker board[12][12], bool atoms[12][12]);
+MarkerAtom check_hit(Point cursor, uint8_t last_index, bool atoms[12][12]);
 void display_board(Marker board[12][12], bool atoms[12][12], uint8_t last_index, Point cursor, BoardPrinterOptions opt);
 void run_menu (GameState *game_state, uint8_t *last_board_index);
 void run_game (GameState *game_state, uint8_t last_board_index, Marker board[12][12], bool atoms[12][12]);
@@ -171,7 +171,7 @@ int main() {
 }
 
 
-MarkerAtom check_hit(Point cursor, uint8_t last_index, Marker board[12][12], bool atoms[12][12]) {
+MarkerAtom check_hit(Point cursor, uint8_t last_index, bool atoms[12][12]) {
     Direction ray_direction;
     Point ray_position = cursor;
     bool was_reflected = false;
@@ -501,7 +501,7 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
             ) {
                 if (board[cursor.y][cursor.x].type == EMPTY) {
                         history_cursor = (((history.position - history.depth) % 5) + 5) % 5;
-                        MarkerAtom mark = check_hit(cursor, last_board_index, board, atoms);
+                        MarkerAtom mark = check_hit(cursor, last_board_index, atoms);
                         history.moves[history_cursor].move = ' ';
                         if (mark.type == SNAKE) {
                             board[mark.data.two_point.f.y][mark.data.two_point.f.x].type = mark.type;
