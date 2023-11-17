@@ -6,10 +6,14 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
-#if defined (__WIN32__)
-    #include <windows.h>
+// #define CPP
+#if defined __cplusplus
+    #include <thread>
+    #include <chrono>
+    #define SLEEP(n) std::this_thread::sleep_for(std::chrono::seconds(n))
 #else
     #include <unistd.h>
+    #define SLEEP(n) sleep(n)
 #endif
 
 #define STARTING_SCREEN \
@@ -29,7 +33,7 @@ Choose board size:\n\
 #define UTF8
 
 #ifdef UTF8
-    #define CLS "\e[1;1H\e[2J" // clear screen
+    #define CLS "\033[2J\033[1;1H" // clear screen
     // #define CLS ""
     #define B_LEFT_UP "╔"
     #define B_RIGHT_UP "╗"
@@ -51,10 +55,10 @@ Choose board size:\n\
     #define B_FILL "."
 #endif
 
-#define BOLD(s) "\e[1m" s "\e[0m"
-#define RED(s) "\e[31m" s "\e[0m"
-#define GREEN(s) "\e[32m" s "\e[0m"
-#define BLUE(s) "\e[34m" s "\e[0m"
+#define BOLD(s) "\33[1m" s "\33[0m"
+#define RED(s) "\33[31m" s "\33[0m"
+#define GREEN(s) "\33[32m" s "\33[0m"
+#define BLUE(s) "\33[34m" s "\33[0m"
 
 
 typedef enum {
@@ -122,7 +126,7 @@ typedef struct {
 } MoveHistory;
 
 
-MarkerAtom check_hit(Point cursor, uint8_t last_index, Marker board[12][12], bool atoms[12][12]);
+MarkerAtom check_hit(Point cursor, uint8_t last_index, bool atoms[12][12]);
 void display_board(Marker board[12][12], bool atoms[12][12], uint8_t last_index, Point cursor, BoardPrinterOptions opt);
 void run_menu (GameState *game_state, uint8_t *last_board_index);
 void run_game (GameState *game_state, uint8_t last_board_index, Marker board[12][12], bool atoms[12][12]);
@@ -154,7 +158,6 @@ int main() {
     Marker board[12][12];
     memset(board, 0, 12 * 12 * sizeof(Marker));
     bool atoms[12][12] = {false};
-    uint8_t number_of_atoms;
 
     printf(CLS);
     do {
@@ -171,7 +174,7 @@ int main() {
 }
 
 
-MarkerAtom check_hit(Point cursor, uint8_t last_index, Marker board[12][12], bool atoms[12][12]) {
+MarkerAtom check_hit(Point cursor, uint8_t last_index, bool atoms[12][12]) {
     Direction ray_direction;
     Point ray_position = cursor;
     bool was_reflected = false;
@@ -199,13 +202,29 @@ MarkerAtom check_hit(Point cursor, uint8_t last_index, Marker board[12][12], boo
              !((ray_position.x == cursor.x) && (ray_position.y == cursor.y)))
             {
                 // since we already know it didn't hit anything at the start
-                return (MarkerAtom){ SNAKE, {(Point){cursor.x, cursor.y}, (Point){ray_position.x, ray_position.y}} } ;
+                #ifndef __cplusplus
+                    return (MarkerAtom){ SNAKE, {(Point){cursor.x, cursor.y}, (Point){ray_position.x, ray_position.y}} };
+                #else
+                    // MarkerAtom mark = { SNAKE, { {cursor.x, cursor.y}, {ray_position.x, ray_position.y}} };
+                    MarkerAtom mark;
+                    mark.type = SNAKE;
+                    mark.data.two_point.f = {cursor.x, cursor.y};
+                    mark.data.two_point.l = {ray_position.x, ray_position.y};
+                    return mark;
+                #endif
             }
 
         // check at borders to prevent out of boundry array acceses later
         if (((ray_position.x == cursor.x) && (ray_position.y == cursor.y)) && was_reflected)
             {
-                return (MarkerAtom){ REFLECTION, {cursor.x, cursor.y} };
+                #ifndef __cplusplus
+                    return (MarkerAtom){ REFLECTION, {cursor.x, cursor.y} };
+                #else
+                    MarkerAtom mark;
+                    mark.type = REFLECTION;
+                    mark.data.point = {cursor.x, cursor.y};
+                    return mark;
+                #endif
             }
 
         // check for direct hits and reflections
@@ -213,7 +232,14 @@ MarkerAtom check_hit(Point cursor, uint8_t last_index, Marker board[12][12], boo
         if      (ray_direction == RIGHT) {
             if (atoms[ray_position.y][ray_position.x + 1]) // D hit
                 {
-                    return (MarkerAtom){ HIT, {cursor.x, cursor.y} };
+                    #ifndef __cplusplus
+                        return (MarkerAtom){ HIT, {cursor.x, cursor.y} };
+                    #else
+                        MarkerAtom mark;
+                        mark.type = HIT;
+                        mark.data.point = {cursor.x, cursor.y};
+                        return mark;
+                    #endif
                 }
             else if (atoms[ray_position.y - 1][ray_position.x + 1] && atoms[ray_position.y + 1][ray_position.x + 1]) // LR hit
                 { ray_direction = LEFT; was_reflected = true; }
@@ -225,7 +251,14 @@ MarkerAtom check_hit(Point cursor, uint8_t last_index, Marker board[12][12], boo
         else if (ray_direction == LEFT) {
             if (atoms[ray_position.y][ray_position.x - 1]) // D hit
                 {
-                    return (MarkerAtom){ HIT, {cursor.x, cursor.y} };
+                    #ifndef __cplusplus
+                        return (MarkerAtom){ HIT, {cursor.x, cursor.y} };
+                    #else
+                        MarkerAtom mark;
+                        mark.type = HIT;
+                        mark.data.point = {cursor.x, cursor.y};
+                        return mark;
+                    #endif
                 }
             else if (atoms[ray_position.y - 1][ray_position.x - 1] && atoms[ray_position.y + 1][ray_position.x - 1]) // LR hit
                 { ray_direction = RIGHT; was_reflected = true; }
@@ -237,7 +270,14 @@ MarkerAtom check_hit(Point cursor, uint8_t last_index, Marker board[12][12], boo
         else if (ray_direction == DOWN) {
             if (atoms[ray_position.y + 1][ray_position.x]) // D hit
                 {
-                    return (MarkerAtom){ HIT, {cursor.x, cursor.y} };
+                    #ifndef __cplusplus
+                        return (MarkerAtom){ HIT, {cursor.x, cursor.y} };
+                    #else
+                        MarkerAtom mark;
+                        mark.type = HIT;
+                        mark.data.point = {cursor.x, cursor.y};
+                        return mark;
+                    #endif
                 }
             else if (atoms[ray_position.y + 1][ray_position.x - 1] && atoms[ray_position.y + 1][ray_position.x + 1]) // LR hit
                 { ray_direction = UP;    was_reflected = true; }
@@ -249,7 +289,14 @@ MarkerAtom check_hit(Point cursor, uint8_t last_index, Marker board[12][12], boo
         else if (ray_direction == UP) {
             if (atoms[ray_position.y - 1][ray_position.x]) // D hit
                 {
-                    return (MarkerAtom){ HIT, {cursor.x, cursor.y} };
+                    #ifndef __cplusplus
+                        return (MarkerAtom){ HIT, {cursor.x, cursor.y} };
+                    #else
+                        MarkerAtom mark;
+                        mark.type = HIT;
+                        mark.data.point = {cursor.x, cursor.y};
+                        return mark;
+                    #endif
                 }
             else if (atoms[ray_position.y - 1][ray_position.x - 1] && atoms[ray_position.y - 1][ray_position.x + 1]) // LR hit
                 { ray_direction = DOWN;  was_reflected = true; }
@@ -263,7 +310,14 @@ MarkerAtom check_hit(Point cursor, uint8_t last_index, Marker board[12][12], boo
         // to detect direct reflections
         if (((ray_position.x == cursor.x) && (ray_position.y == cursor.y)) && was_reflected)
             {
-                return (MarkerAtom){ REFLECTION, {cursor.x, cursor.y} };
+                #ifndef __cplusplus
+                    return (MarkerAtom){ REFLECTION, {cursor.x, cursor.y} };
+                #else
+                    MarkerAtom mark;
+                    mark.type = REFLECTION;
+                    mark.data.point = {cursor.x, cursor.y};
+                    return mark;
+                #endif
             }
         
         // move the ray
@@ -431,9 +485,17 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
                            (cursor.y == 0) || (cursor.y == last_board_index)))
                         {
                             if (board[cursor.y][cursor.x].type != MARK) {
-                                board[cursor.y][cursor.x] = (Marker){MARK, 0};
+                                #ifndef __cplusplus
+                                    board[cursor.y][cursor.x] = (Marker){MARK, 0};
+                                #else
+                                    board[cursor.y][cursor.x] = {MARK, 0};
+                                #endif
                             } else {
-                                board[cursor.y][cursor.x] = (Marker){EMPTY, 0};
+                                #ifndef __cplusplus
+                                    board[cursor.y][cursor.x] = (Marker){EMPTY, 0};
+                                #else
+                                    board[cursor.y][cursor.x] = {EMPTY, 0};
+                                #endif
                             }
                         }
                     break;
@@ -466,9 +528,17 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
                            (cursor.y == 0) || (cursor.y == last_board_index)))
                         {
                             if (board[cursor.y][cursor.x].type != MARK) {
-                                board[cursor.y][cursor.x] = (Marker){MARK, 0};
+                                #ifndef __cplusplus
+                                    board[cursor.y][cursor.x] = (Marker){MARK, 0};
+                                #else
+                                    board[cursor.y][cursor.x] = {MARK, 0};
+                                #endif
                             } else {
-                                board[cursor.y][cursor.x] = (Marker){EMPTY, 0};
+                                #ifndef __cplusplus
+                                    board[cursor.y][cursor.x] = (Marker){EMPTY, 0};
+                                #else
+                                    board[cursor.y][cursor.x] = {EMPTY, 0};
+                                #endif
                             }
                         }
                     break;
@@ -478,11 +548,11 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
                     if (history.moves[history_cursor].data.type == SNAKE) {
                         board[marker_atom.data.two_point.f.y][marker_atom.data.two_point.f.x].type = marker_atom.type;
                         board[marker_atom.data.two_point.l.y][marker_atom.data.two_point.l.x].type = marker_atom.type;
-                        board[marker_atom.data.two_point.f.y][marker_atom.data.two_point.f.x].number = 0;
-                        board[marker_atom.data.two_point.l.y][marker_atom.data.two_point.l.x].number = 0;
+                        board[marker_atom.data.two_point.f.y][marker_atom.data.two_point.f.x].number = check_number;
+                        board[marker_atom.data.two_point.l.y][marker_atom.data.two_point.l.x].number = check_number;
                         check_number++;
                     } else {
-                        board[marker_atom.data.point.y][marker_atom.data.point.x].type = history.moves[(((history.position - history.depth) % 5) + 5) % 5].data.type;
+                        board[marker_atom.data.point.y][marker_atom.data.point.x].type = history.moves[history_cursor].data.type;
                     }
                 default: break;
                 }
@@ -501,7 +571,7 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
             ) {
                 if (board[cursor.y][cursor.x].type == EMPTY) {
                         history_cursor = (((history.position - history.depth) % 5) + 5) % 5;
-                        MarkerAtom mark = check_hit(cursor, last_board_index, board, atoms);
+                        MarkerAtom mark = check_hit(cursor, last_board_index, atoms);
                         history.moves[history_cursor].move = ' ';
                         if (mark.type == SNAKE) {
                             board[mark.data.two_point.f.y][mark.data.two_point.f.x].type = mark.type;
@@ -526,11 +596,19 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
                    (cursor.y == 0) || (cursor.y == last_board_index))) {
                     if (board[cursor.y][cursor.x].type != MARK) {
                         if (marker_count < number_of_atoms) {
-                            board[cursor.y][cursor.x] = (Marker){MARK, 0};
+                            #ifndef __cplusplus
+                                board[cursor.y][cursor.x] = (Marker){MARK, 0};
+                            #else
+                                board[cursor.y][cursor.x] = {MARK, 0};
+                            #endif
                             marker_count++;
                         }
                     } else {
-                        board[cursor.y][cursor.x] = (Marker){EMPTY, 0};
+                        #ifndef __cplusplus
+                            board[cursor.y][cursor.x] = (Marker){EMPTY, 0};
+                        #else
+                            board[cursor.y][cursor.x] = {EMPTY, 0};
+                        #endif
                         marker_count--;
                     }
                     history.moves[(((history.position - history.depth) % 5) + 5) % 5].move = 'o';
@@ -543,7 +621,7 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
         case 'h': case 'H':
             printf(CLS);
             display_board(board, atoms, last_board_index, cursor, SHOW_ATOMS);
-            sleep(3);
+            SLEEP(3);
             break;
         case 'Q': case 'q': scanf("%*c"); *game_state = MENU; break;
         default: break;
@@ -559,7 +637,11 @@ void run_end(GameState *game_state, uint8_t last_board_index, Marker board[12][1
     uint8_t score = 0;
     uint8_t number_of_atoms;
 
-    display_board(board, atoms, last_board_index, (Point){0, 0}, SHOW_CORRECT_HITS);
+    #ifndef __cplusplus
+        display_board(board, atoms, last_board_index, (Point){0, 0}, SHOW_CORRECT_HITS);
+    #else
+        display_board(board, atoms, last_board_index, {0, 0}, SHOW_CORRECT_HITS);
+    #endif
     for (uint8_t i = 0; i < last_board_index; i++) {
         for (uint8_t j = 0; j < last_board_index; j++) {
             if ((board[i][j].type == MARK) && atoms[i][j]) { score++; }
@@ -582,7 +664,11 @@ void run_end(GameState *game_state, uint8_t last_board_index, Marker board[12][1
 
 
 void run_check(GameState *game_state, uint8_t last_board_index, Marker board[12][12], bool atoms[12][12]) {
-    display_board(board, atoms, last_board_index, (Point){0, 0}, SHOW_ATOMS);
+    #ifndef __cplusplus
+        display_board(board, atoms, last_board_index, (Point){0, 0}, SHOW_ATOMS);
+    #else
+        display_board(board, atoms, last_board_index, {0, 0}, SHOW_ATOMS);
+    #endif
     puts("press ENTER to continue...");
     scanf("%*c");
     printf(CLS);
