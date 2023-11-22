@@ -30,30 +30,17 @@ Choose board size:\n\
     (L) LARGE  10x10\n\
 "
 
-#define UTF8
 
-#ifdef UTF8
-    #define CLS "\033[2J\033[1;1H" // clear screen
-    // #define CLS ""
-    #define B_LEFT_UP "╔"
-    #define B_RIGHT_UP "╗"
-    #define B_LEFT_DOWN "╚"
-    #define B_RIGHT_DOWN "╝"
-    #define B_HBEAM "═"
-    #define B_VBEAM "║"
-    #define B_BORDER "▓"
-    #define B_FILL "░"
-#else
-    #define CLS "\n\n\n\n\n\n\n\n\n\n\n\n"
-    #define B_LEFT_UP "/"
-    #define B_RIGHT_UP "\\"
-    #define B_LEFT_DOWN "\\"
-    #define B_RIGHT_DOWN "/"
-    #define B_HBEAM "-"
-    #define B_VBEAM "|"
-    #define B_BORDER "#"
-    #define B_FILL "."
-#endif
+#define CLS "\033[2J\033[1;1H" // clear screen
+// #define CLS ""
+#define B_LEFT_UP    (char)(201)
+#define B_RIGHT_UP   (char)(187)
+#define B_LEFT_DOWN  (char)(200)
+#define B_RIGHT_DOWN (char)(188)
+#define B_HBEAM      (char)(205)
+#define B_VBEAM      (char)(186)
+#define B_BORDER     (char)(177)
+#define B_FILL       (char)(176)
 
 #define BOLD(s) "\33[1m" s "\33[0m"
 #define RED(s) "\33[31m" s "\33[0m"
