@@ -321,8 +321,8 @@ MarkerAtom check_hit(Point cursor, uint8_t last_index, bool atoms[12][12]) {
 
 void display_board(Marker board[12][12], bool atoms[12][12], uint8_t last_index, Point cursor, BoardPrinterOptions opt) {
     printf(B_LEFT_UP);
-    for (uint8_t i = 0; i <= last_index; i++) { printf(B_HBEAM); }
-    printf(B_RIGHT_UP "\n");
+    for (uint8_t i = 0; i <= last_index; i++) { printf("%c", B_HBEAM); }
+    printf("%c\n" ,B_RIGHT_UP);
 
     // I know it's bearly readable
     // I couldn't find a better way to do this
@@ -334,7 +334,7 @@ void display_board(Marker board[12][12], bool atoms[12][12], uint8_t last_index,
             else if (atoms[i][j]) { 
                 if (opt & SHOW_ATOMS) { printf("o"); }
                 else if (opt & SHOW_CORRECT_HITS) { if (board[i][j].type == MARK) { printf("O"); } else { printf("o"); } }
-                else if (opt & SHOW_MARKERS) { if (board[i][j].type == MARK) { printf("o"); } else { printf(B_FILL); } }
+                else if (opt & SHOW_MARKERS) { if (board[i][j].type == MARK) { printf("o"); } else { printf("%c", B_FILL); } }
                 else { printf(B_FILL); }
             }
             else if (board[i][j].type == HIT)        { printf(GREEN("H")); }
@@ -348,12 +348,12 @@ void display_board(Marker board[12][12], bool atoms[12][12], uint8_t last_index,
             else if ((i == 0) || (i == last_index) || (j == 0) || (j == last_index)) { printf(B_BORDER); }
             else { printf(B_FILL); }
         }
-        printf(B_VBEAM "\n");
+        printf("%c", B_VBEAM);
     }
 
     printf(B_LEFT_DOWN);
     for (uint8_t i = 0; i <= last_index; i++) { printf(B_HBEAM); }
-    printf(B_RIGHT_DOWN "\n");
+    printf("%c\n", B_RIGHT_DOWN);
 }
 
 
