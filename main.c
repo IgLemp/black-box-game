@@ -11,9 +11,11 @@
     #include <thread>
     #include <chrono>
     #define SLEEP(n) std::this_thread::sleep_for(std::chrono::seconds(n))
+    #define __cls system("cls") // clear screen
 #else
     #include <unistd.h>
     #define SLEEP(n) sleep(n)
+    #define __cls printf("\033[2J\033[1;1H"); // clear screen
 #endif
 
 #define STARTING_SCREEN \
@@ -31,8 +33,8 @@ Choose board size:\n\
 "
 
 
-#define CLS "\033[2J\033[1;1H" // clear screen
-// #define CLS ""
+
+// #define __cls ""
 #define B_LEFT_UP    (char)(201)
 #define B_RIGHT_UP   (char)(187)
 #define B_LEFT_DOWN  (char)(200)
@@ -146,7 +148,7 @@ int main() {
     memset(board, 0, 12 * 12 * sizeof(Marker));
     bool atoms[12][12] = {false};
 
-    printf(CLS);
+    __cls;
     do {
         switch (game_state) {
         case MENU:    run_menu (&game_state, &last_board_index); break;
@@ -156,7 +158,7 @@ int main() {
         }
     } while (game_state != QUIT);
 
-    printf(CLS);
+    __cls;
     return 0;
 }
 
@@ -320,7 +322,7 @@ MarkerAtom check_hit(Point cursor, uint8_t last_index, bool atoms[12][12]) {
 
 
 void display_board(Marker board[12][12], bool atoms[12][12], uint8_t last_index, Point cursor, BoardPrinterOptions opt) {
-    printf(B_LEFT_UP);
+    printf("%c", B_LEFT_UP);
     for (uint8_t i = 0; i <= last_index; i++) { printf("%c", B_HBEAM); }
     printf("%c\n" ,B_RIGHT_UP);
 
@@ -328,31 +330,31 @@ void display_board(Marker board[12][12], bool atoms[12][12], uint8_t last_index,
     // I couldn't find a better way to do this
     // NOTICE: if statements first check for indexes then for tile type!
     for (uint8_t i = 0; i <= last_index; i++) {
-        printf(B_VBEAM);
+        printf("%c", B_VBEAM);
         for (uint8_t j = 0; j <= last_index; j++) {
             if (((i == cursor.y) && (j == cursor.x)) && opt & SHOW_CURSOR) { printf("@"); }
             else if (atoms[i][j]) { 
                 if (opt & SHOW_ATOMS) { printf("o"); }
                 else if (opt & SHOW_CORRECT_HITS) { if (board[i][j].type == MARK) { printf("O"); } else { printf("o"); } }
                 else if (opt & SHOW_MARKERS) { if (board[i][j].type == MARK) { printf("o"); } else { printf("%c", B_FILL); } }
-                else { printf(B_FILL); }
+                else { printf("%c", B_FILL); }
             }
             else if (board[i][j].type == HIT)        { printf(GREEN("H")); }
             else if (board[i][j].type == REFLECTION) { printf(RED("R")); } 
             else if (board[i][j].type == SNAKE)      { printf(BLUE("%01x"), board[i][j].number); } 
-            else if ((board[i][j].type == MARK)) {
+            else if (board[i][j].type == MARK) {
                 if (opt & SHOW_MARKERS) { printf("o"); }
                 else if (opt & SHOW_CORRECT_HITS) { printf("X"); }
-                else { printf(B_FILL); }
+                else { printf("%c", B_FILL); }
             } 
-            else if ((i == 0) || (i == last_index) || (j == 0) || (j == last_index)) { printf(B_BORDER); }
-            else { printf(B_FILL); }
+            else if ((i == 0) || (i == last_index) || (j == 0) || (j == last_index)) { printf("%c" ,B_BORDER); }
+            else { printf("%c", B_FILL); }
         }
-        printf("%c", B_VBEAM);
+        printf("%c\n", B_VBEAM);
     }
 
-    printf(B_LEFT_DOWN);
-    for (uint8_t i = 0; i <= last_index; i++) { printf(B_HBEAM); }
+    printf("%c", B_LEFT_DOWN);
+    for (uint8_t i = 0; i <= last_index; i++) { printf("%c", B_HBEAM); }
     printf("%c\n", B_RIGHT_DOWN);
 }
 
@@ -382,7 +384,7 @@ void run_menu(GameState *game_state, uint8_t *last_board_index) {
     default: break;
     }
     
-    printf(CLS);
+    __cls;
 }
 
 
@@ -606,7 +608,7 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
         case 'k': scanf("%*c"); *game_state = END;   break;
         case 'p': scanf("%*c"); *game_state = CHECK; break;
         case 'h': case 'H':
-            printf(CLS);
+            __cls;
             display_board(board, atoms, last_board_index, cursor, SHOW_ATOMS);
             SLEEP(3);
             break;
@@ -615,7 +617,7 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
         }
 
         
-        printf(CLS);
+        __cls;
     }
 }
 
@@ -645,7 +647,7 @@ void run_end(GameState *game_state, uint8_t last_board_index, Marker board[12][1
     if (score == number_of_atoms) { printf(BOLD("Congratulations! You've marked all of the atoms!\n")); }
     puts("press ENTER to continue...");
     scanf("%*c");
-    printf(CLS);
+    __cls;
     *game_state = MENU;
 }
 
@@ -658,6 +660,6 @@ void run_check(GameState *game_state, uint8_t last_board_index, Marker board[12]
     #endif
     puts("press ENTER to continue...");
     scanf("%*c");
-    printf(CLS);
+    __cls;
     *game_state = MENU;
 }
