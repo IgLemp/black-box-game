@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
-// #define CPP
+
 #if defined __cplusplus
     #include <thread>
     #include <chrono>
