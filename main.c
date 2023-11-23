@@ -326,7 +326,7 @@ void display_board(Marker board[12][12], bool atoms[12][12], uint8_t last_index,
     for (uint8_t i = 0; i <= last_index; i++) { printf("%c", B_HBEAM); }
     printf("%c\n" ,B_RIGHT_UP);
 
-    // I know it's bearly readable
+    // I know it's barely readable
     // I couldn't find a better way to do this
     // NOTICE: if statements first check for indexes then for tile type!
     for (uint8_t i = 0; i <= last_index; i++) {
