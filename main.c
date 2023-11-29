@@ -146,8 +146,6 @@ void run_end  (GameState *game_state, uint8_t last_board_index, Marker board[12]
     NOTICE: coordinate system starts at top left!
 */
 
-// TODO: History depth 5 with dynamic undo redo
-
 int main() {
     GameState game_state = MENU;
     uint8_t last_board_index; // that is including borders!
