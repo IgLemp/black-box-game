@@ -13,8 +13,11 @@
     #define SLEEP(n) std::this_thread::sleep_for(std::chrono::seconds(n))
     #define __cls system("cls") // clear screen
 #else
-    #include <unistd.h>
-    #define SLEEP(n) sleep(n)
+    // if it runs with C on Windows... we have a problwm
+    #ifndef __WIN32__
+        #include <unistd.h>
+        #define SLEEP(n) sleep(n)
+    #endif
     #define __cls printf("\033[2J\033[1;1H"); // clear screen
 #endif
 
@@ -26,6 +29,8 @@
  / /_/ / / /_/ / /__/ ,<    / /_/ / /_/ />  <\n\
 /_____/_/\\__,_/\\___/_/|_|  /_____/\\____/_/|_|\n\
 \n\
+Igor Łempicki 200449\
+\n\
 Choose board size:\n\
     (S) SMALL  5x5\n\
     (M) MEDIUM 8x8\n\
@@ -34,7 +39,7 @@ Choose board size:\n\
 
 
 
-// #define __cls ""
+// Because DOS
 #define B_LEFT_UP    (char)(201)
 #define B_RIGHT_UP   (char)(187)
 #define B_LEFT_DOWN  (char)(200)
@@ -138,8 +143,6 @@ void run_end  (GameState *game_state, uint8_t last_board_index, Marker board[12]
 
     NOTICE: coordinate system starts at top left!
 */
-
-// TODO: History depth 5 with dynamic undo redo
 
 int main() {
     GameState game_state = MENU;
