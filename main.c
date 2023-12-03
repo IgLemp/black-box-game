@@ -8,13 +8,17 @@
 #include <stdint.h>
 
 // Why cpp98?
-#define STOS
+// #define STOS
 
 #if defined __cplusplus
     #include <thread>
     #include <chrono>
     #define SLEEP(n) std::this_thread::sleep_for(std::chrono::seconds(n))
-    #define __cls system("cls") // clear screen
+    #ifdef __WIN32__
+        #define __cls system("cls") // clear screen
+    #else
+        #define __cls printf("\033[2J\033[1;1H"); // clear screen
+    #endif
 #else
     // if it runs with C on Windows... we have a problem
     #ifdef __WIN32__
@@ -44,23 +48,23 @@ Choose board size:\n\
 
 // Because DOS
 #ifdef __WIN32__
-    #define B_LEFT_UP    (201)
-    #define B_RIGHT_UP   (187)
-    #define B_LEFT_DOWN  (200)
-    #define B_RIGHT_DOWN (188)
-    #define B_HBEAM      (205)
-    #define B_VBEAM      (186)
-    #define B_BORDER     (177)
-    #define B_FILL       (176)
+    #define __print_B_LEFT_UP    printf("%c", (201))
+    #define __print_B_RIGHT_UP   printf("%c", (187))
+    #define __print_B_LEFT_DOWN  printf("%c", (200))
+    #define __print_B_RIGHT_DOWN printf("%c", (188))
+    #define __print_B_HBEAM      printf("%c", (205))
+    #define __print_B_VBEAM      printf("%c", (186))
+    #define __print_B_BORDER     printf("%c", (177))
+    #define __print_B_FILL       printf("%c", (176))
 #else
-    #define B_LEFT_UP "╔"
-    #define B_RIGHT_UP "╗"
-    #define B_LEFT_DOWN "╚"
-    #define B_RIGHT_DOWN "╝"
-    #define B_HBEAM "═"
-    #define B_VBEAM "║"
-    #define B_BORDER "▓"
-    #define B_FILL "░"
+    #define __print_B_LEFT_UP    printf("╔")
+    #define __print_B_RIGHT_UP   printf("╗")
+    #define __print_B_LEFT_DOWN  printf("╚")
+    #define __print_B_RIGHT_DOWN printf("╝")
+    #define __print_B_HBEAM      printf("═")
+    #define __print_B_VBEAM      printf("║")
+    #define __print_B_BORDER     printf("▓")
+    #define __print_B_FILL       printf("░")
 #endif
 
 #define BOLD(s) "\33[1m" s "\33[0m"
@@ -339,20 +343,20 @@ MarkerAtom check_hit(Point cursor, uint8_t last_index, bool atoms[12][12]) {
 
 
 void display_board(Marker board[12][12], bool atoms[12][12], uint8_t last_index, Point cursor, BoardPrinterOptions opt) {
-    printf("%c", B_LEFT_UP);
-    for (uint8_t i = 0; i <= last_index; i++) { printf("%c", B_HBEAM); }
-    printf("%c\n" ,B_RIGHT_UP);
+    __print_B_LEFT_UP;
+    for (uint8_t i = 0; i <= last_index; i++) { __print_B_HBEAM; }
+    printf("%c\n" ,__print_B_RIGHT_UP);
 
     // NOTICE: if statements first check for indexes then for tile type!
     for (uint8_t i = 0; i <= last_index; i++) {
-        printf("%c", B_VBEAM);
+        __print_B_VBEAM;
         for (uint8_t j = 0; j <= last_index; j++) {
             if (((i == cursor.y) && (j == cursor.x)) && opt & SHOW_CURSOR) { printf("@"); }
             else if (atoms[i][j]) { 
                 if (opt & SHOW_ATOMS) { printf("o"); }
                 else if (opt & SHOW_CORRECT_HITS) { if (board[i][j].type == MARK) { printf("O"); } else { printf("o"); } }
-                else if (opt & SHOW_MARKERS)      { if (board[i][j].type == MARK) { printf("o"); } else { printf("%c", B_FILL); } }
-                else { printf("%c", B_FILL); }
+                else if (opt & SHOW_MARKERS)      { if (board[i][j].type == MARK) { printf("o"); } else { __print_B_FILL; } }
+                else { __print_B_FILL; }
             }
             else if (board[i][j].type == HIT)        { printf(GREEN("H")); }
             else if (board[i][j].type == REFLECTION) { printf(RED("R")); } 
@@ -360,17 +364,17 @@ void display_board(Marker board[12][12], bool atoms[12][12], uint8_t last_index,
             else if (board[i][j].type == MARK) {
                 if (opt & SHOW_MARKERS) { printf("o"); }
                 else if (opt & SHOW_CORRECT_HITS) { printf("X"); }
-                else { printf("%c", B_FILL); }
+                else { __print_B_FILL; }
             } 
-            else if ((i == 0) || (i == last_index) || (j == 0) || (j == last_index)) { printf("%c" ,B_BORDER); }
-            else { printf("%c", B_FILL); }
+            else if ((i == 0) || (i == last_index) || (j == 0) || (j == last_index)) { __print_B_BORDER; }
+            else { __print_B_FILL; }
         }
-        printf("%c\n", B_VBEAM);
+        __print_B_VBEAM;
     }
 
-    printf("%c", B_LEFT_DOWN);
-    for (uint8_t i = 0; i <= last_index; i++) { printf("%c", B_HBEAM); }
-    printf("%c\n", B_RIGHT_DOWN);
+    __print_B_LEFT_DOWN;
+    for (uint8_t i = 0; i <= last_index; i++) { __print_B_HBEAM; }
+    __print_B_RIGHT_DOWN;
 }
 
 
