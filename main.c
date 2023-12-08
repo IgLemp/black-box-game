@@ -44,6 +44,33 @@ Choose board size:\n\
     (S) SMALL  5x5\n\
     (M) MEDIUM 8x8\n\
     (L) LARGE  10x10\n\
+\n\
+    (Q) QUIT\
+"
+
+#define GAME_MENU \
+"\
+(Q) QUIT GAME\n\
+(E) EXIT MENU\n\
+(R) RESTART\n\
+(H) HELP\n\
+(C) CONTROLS\n\
+"
+
+#define CONTROLS \
+"\
+(W) UP\n\
+(S) DOWN\n\
+(A) LEFT\n\
+(D) RIGHT\n\
+\n\
+(SPACE) SHOOT RAY\n\
+(O) MARK POSITION\n\
+\n\
+(U) UNDO\n\
+(R) REDO\n\
+\n\
+(Q) MENU\n\
 "
 
 // Because DOS
@@ -345,7 +372,8 @@ MarkerAtom check_hit(Point cursor, uint8_t last_index, bool atoms[12][12]) {
 void display_board(Marker board[12][12], bool atoms[12][12], uint8_t last_index, Point cursor, BoardPrinterOptions opt) {
     __print_B_LEFT_UP;
     for (uint8_t i = 0; i <= last_index; i++) { __print_B_HBEAM; }
-    printf("%c\n" ,__print_B_RIGHT_UP);
+    __print_B_RIGHT_UP;
+    printf("\n");
 
     // NOTICE: if statements first check for indexes then for tile type!
     for (uint8_t i = 0; i <= last_index; i++) {
@@ -370,11 +398,13 @@ void display_board(Marker board[12][12], bool atoms[12][12], uint8_t last_index,
             else { __print_B_FILL; }
         }
         __print_B_VBEAM;
+        printf("\n");
     }
 
     __print_B_LEFT_DOWN;
     for (uint8_t i = 0; i <= last_index; i++) { __print_B_HBEAM; }
     __print_B_RIGHT_DOWN;
+    printf("\n");
 }
 
 
@@ -626,12 +656,42 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
             break;
         case 'k': scanf("%*c"); *game_state = END;   break;
         case 'p': scanf("%*c"); *game_state = CHECK; break;
-        case 'h': case 'H':
+        case 'Q': case 'q':
+            LOOP:
             __cls;
-            display_board(board, atoms, last_board_index, cursor, SHOW_ATOMS);
-            SLEEP(3);
+            display_board(board, atoms, last_board_index, cursor, (BoardPrinterOptions)(SHOW_MARKERS));
+            printf(GAME_MENU);
+            printf("> "); // Prompt
+            scanf("%c", &input);
+            
+            switch (input) {
+            case 'Q': case 'q':
+                *game_state = MENU;
+                break;
+            case 'R': case 'r':
+                __cls;
+                memset(board, 0, 12 * 12 * sizeof(Marker));
+                break;
+            case 'H': case 'h':
+                __cls;
+                display_board(board, atoms, last_board_index, cursor, SHOW_ATOMS);
+                SLEEP(3);
+                break;
+            case 'C': case 'c':
+                __cls;
+                display_board(board, atoms, last_board_index, cursor, (BoardPrinterOptions)(SHOW_MARKERS));
+                printf(CONTROLS);
+                printf("> "); // Prompt
+                scanf("%*c%*c");
+                __cls;
+                break;
+            case 'E': case 'e':
+                break;
+            default:
+                goto LOOP;
+                break;
+            }
             break;
-        case 'Q': case 'q': scanf("%*c"); *game_state = MENU; break;
         default: break;
         }
 
