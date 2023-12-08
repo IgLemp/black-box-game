@@ -476,8 +476,8 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
                     if (history.moves[history_cursor].data.type == SNAKE) {
                         board[marker_atom.data.two_point.f.y][marker_atom.data.two_point.f.x].type = marker_atom.type;
                         board[marker_atom.data.two_point.l.y][marker_atom.data.two_point.l.x].type = marker_atom.type;
-                        board[marker_atom.data.two_point.f.y][marker_atom.data.two_point.f.x].number = 0;
-                        board[marker_atom.data.two_point.l.y][marker_atom.data.two_point.l.x].number = 0;
+                        board[marker_atom.data.two_point.f.y][marker_atom.data.two_point.f.x].number = check_number;
+                        board[marker_atom.data.two_point.l.y][marker_atom.data.two_point.l.x].number = check_number;
                         check_number++;
                     } else {
                         board[marker_atom.data.point.y][marker_atom.data.point.x].type = history.moves[(((history.position - history.depth) % 5) + 5) % 5].data.type;
