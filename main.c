@@ -162,7 +162,7 @@ typedef struct {
 
 // circular buffer
 typedef struct {
-    HistoryEntry moves[5];
+    HistoryEntry moves[7];
     int position;
     int depth;
 } MoveHistory;
@@ -489,32 +489,32 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
         switch (input) {
         case 'W': case 'w':
             if (cursor.y > 0)                { cursor.y--; }
-            history.moves[(((history.position - history.depth) % 5) + 5) % 5].move = 'w';
+            history.moves[(((history.position - history.depth) % 7) + 7) % 7].move = 'w';
             if (history.depth > 0) { history.depth--; }
-            else                   { history.position = (history.position + 1 + 5) % 5; }
+            else                   { history.position = (history.position + 1 + 7) % 7; }
             break;
         case 'S': case 's':
             if (cursor.y < last_board_index) { cursor.y++; }
-            history.moves[(((history.position - history.depth) % 5) + 5) % 5].move = 's';
+            history.moves[(((history.position - history.depth) % 7) + 7) % 7].move = 's';
             if (history.depth > 0) { history.depth--; }
-            else                   { history.position = (history.position + 1 + 5) % 5; }
+            else                   { history.position = (history.position + 1 + 7) % 7; }
             break;
         case 'A': case 'a':
             if (cursor.x > 0)                { cursor.x--; }
-            history.moves[(((history.position - history.depth) % 5) + 5) % 5].move = 'a';
+            history.moves[(((history.position - history.depth) % 7) + 7) % 7].move = 'a';
             if (history.depth > 0) { history.depth--; }
-            else                   { history.position = (history.position + 1 + 5) % 5; }
+            else                   { history.position = (history.position + 1 + 7) % 7; }
             break;
         case 'D': case 'd':
             if (cursor.x < last_board_index) { cursor.x++; }
-            history.moves[(((history.position - history.depth) % 5) + 5) % 5].move = 'd';
+            history.moves[(((history.position - history.depth) % 7) + 7) % 7].move = 'd';
             if (history.depth > 0) { history.depth--; }
-            else                   { history.position = (history.position + 1 + 5) % 5; }
+            else                   { history.position = (history.position + 1 + 7) % 7; }
             break;
         case 'U': case 'u':
-            if (history.depth < 4) {
+            if (history.depth < 6) {
                 history.depth++;
-                history_cursor = (((history.position - history.depth) % 5) + 5) % 5;
+                history_cursor = (((history.position - history.depth) % 7) + 7) % 7;
                 
                 switch (history.moves[history_cursor].move) {
                 case 'w': if (cursor.y < last_board_index) { cursor.y++; } break;
@@ -559,7 +559,7 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
             break;
         case 'R': case 'r':
             if (history.depth > 0) {
-                switch (history.moves[(((history.position - history.depth) % 5) + 5) % 5].move) {
+                switch (history.moves[(((history.position - history.depth) % 7) + 7) % 7].move) {
                 case 'w': if (cursor.y > 0)                { cursor.y--; } break;
                 case 's': if (cursor.y < last_board_index) { cursor.y++; } break;
                 case 'a': if (cursor.x > 0)                { cursor.x--; } break;
@@ -584,7 +584,7 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
                         }
                     break;
                 case ' ':
-                    history_cursor = (((history.position - history.depth) % 5) + 5) % 5;
+                    history_cursor = (((history.position - history.depth) % 7) + 7) % 7;
                     marker_atom = history.moves[history_cursor].data;
                     if (history.moves[history_cursor].data.type == SNAKE) {
                         board[marker_atom.data.two_point.f.y][marker_atom.data.two_point.f.x].type = marker_atom.type;
@@ -611,7 +611,7 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
                 ((cursor.x == last_board_index) && (cursor.y == last_board_index)))
             ) {
                 if (board[cursor.y][cursor.x].type == EMPTY) {
-                        history_cursor = (((history.position - history.depth) % 5) + 5) % 5;
+                        history_cursor = (((history.position - history.depth) % 7) + 7) % 7;
                         MarkerAtom mark = check_hit(cursor, last_board_index, atoms);
                         history.moves[history_cursor].move = ' ';
                         if (mark.type == SNAKE) {
@@ -628,7 +628,7 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
                             board[mark.data.point.y][mark.data.point.x].type = mark.type;
                         }
                         if (history.depth > 0) { history.depth--; }
-                        else                   { history.position = (history.position + 1 + 5) % 5; }
+                        else                   { history.position = (history.position + 1 + 7) % 7; }
                     }
             }
             break;
@@ -652,9 +652,9 @@ void run_game(GameState *game_state, uint8_t last_board_index, Marker board[12][
                         #endif
                         marker_count--;
                     }
-                    history.moves[(((history.position - history.depth) % 5) + 5) % 5].move = 'o';
+                    history.moves[(((history.position - history.depth) % 7) + 7) % 7].move = 'o';
                     if (history.depth > 0) { history.depth--; }
-                    else                   { history.position = (history.position + 1 + 5) % 5; }
+                    else                   { history.position = (history.position + 1 + 7) % 7; }
             }
             break;
         case 'k': scanf("%*c"); *game_state = END;   break;
