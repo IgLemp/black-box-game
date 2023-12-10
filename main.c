@@ -9,6 +9,7 @@
 
 // Why cpp98?
 // #define STOS
+#define __WIN32__
 
 #if defined __cplusplus
     #include <thread>
@@ -24,10 +25,12 @@
     #ifdef __WIN32__
         #include <windows.h>
         #define SLEEP(n) Sleep(n)
-    #endif
+        #define __cls system("cls");
+    #else
     #include <unistd.h>
-    #define SLEEP(n) sleep(n)
-    #define __cls printf("\033[2J\033[1;1H"); // clear screen
+        #define SLEEP(n) sleep(n)
+        #define __cls printf("\033[2J\033[1;1H"); // clear screen
+    #endif
 #endif
 
 #define STARTING_SCREEN \
