@@ -1,5 +1,7 @@
 # build artifacts
 *.out
 *.exe
+black-box
+
 trash.c
 main
